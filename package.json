@@ -1,0 +1,17 @@
+{
+  "name": "bomberman-dom",
+  "version": "1.0.0",
+  "description": "Multiplayer Bomberman game using mini-framework",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["bomberman", "game", "multiplayer", "websocket"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}
+
