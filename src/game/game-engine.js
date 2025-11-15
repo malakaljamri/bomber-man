@@ -48,8 +48,25 @@ export class GameEngine {
       }
     });
 
+    this.ws.on('player-moved', (data) => {
+      // Update other players' positions
+      if (this.gameState.players[data.playerId]) {
+        this.gameState.players[data.playerId].x = data.x;
+        this.gameState.players[data.playerId].y = data.y;
+        this.updateDisplay();
+      }
+    });
+
     this.ws.on('bomb-placed', (data) => {
       if (data.bomb) {
+        // Add bomb to local state if not already there
+        if (!this.gameState.bombs) {
+          this.gameState.bombs = [];
+        }
+        const exists = this.gameState.bombs.some(b => b.id === data.bomb.id);
+        if (!exists) {
+          this.gameState.bombs.push(data.bomb);
+        }
         this.updateDisplay();
       }
     });
@@ -103,13 +120,16 @@ export class GameEngine {
     if (!player || player.lives <= 0) return;
 
     // Grid-based movement - move one cell at a time
-    const moveSpeed = 1000 / (player.speed || 1); // Time in ms to move one cell
+    // Base speed: 200ms per cell, faster with speed power-up
+    const baseMoveSpeed = 200;
+    const moveSpeed = baseMoveSpeed / (player.speed || 1); // Time in ms to move one cell
     const now = performance.now();
     
     if (!player.lastMoveTime) {
       player.lastMoveTime = now;
     }
 
+    // Check if enough time has passed for next move
     if (now - player.lastMoveTime < moveSpeed) {
       return; // Wait before next move
     }
@@ -138,6 +158,9 @@ export class GameEngine {
       player.x = newX;
       player.y = newY;
       player.lastMoveTime = now;
+      
+      // Update display immediately for responsive movement
+      this.updateDisplay();
       
       // Send movement to server
       this.ws.send({
