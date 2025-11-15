@@ -20,14 +20,26 @@ export class GameEngine {
   }
 
   setupControls() {
-    window.addEventListener('keydown', (e) => {
-      this.keys[e.key.toLowerCase()] = true;
+    // Handle both window and container focus
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      this.keys[key] = true;
       this.handleKeyPress(e);
-    });
+    };
 
-    window.addEventListener('keyup', (e) => {
-      this.keys[e.key.toLowerCase()] = false;
-    });
+    const handleKeyUp = (e) => {
+      const key = e.key.toLowerCase();
+      this.keys[key] = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    // Also listen on the container for better focus handling
+    if (this.container) {
+      this.container.addEventListener('keydown', handleKeyDown);
+      this.container.addEventListener('keyup', handleKeyUp);
+    }
   }
 
   handleKeyPress(e) {
@@ -120,17 +132,19 @@ export class GameEngine {
     if (!player || player.lives <= 0) return;
 
     // Grid-based movement - move one cell at a time
-    // Base speed: 200ms per cell, faster with speed power-up
-    const baseMoveSpeed = 200;
+    // Base speed: 150ms per cell, faster with speed power-up
+    const baseMoveSpeed = 150;
     const moveSpeed = baseMoveSpeed / (player.speed || 1); // Time in ms to move one cell
     const now = performance.now();
     
+    // Initialize lastMoveTime if not set
     if (!player.lastMoveTime) {
-      player.lastMoveTime = now;
+      player.lastMoveTime = 0; // Allow immediate first movement
     }
 
     // Check if enough time has passed for next move
-    if (now - player.lastMoveTime < moveSpeed) {
+    const timeSinceLastMove = now - player.lastMoveTime;
+    if (timeSinceLastMove < moveSpeed) {
       return; // Wait before next move
     }
 
@@ -139,6 +153,7 @@ export class GameEngine {
     let moved = false;
 
     // Handle movement - one cell at a time
+    // Check for WASD or Arrow keys
     if (this.keys['w'] || this.keys['arrowup']) {
       newY = Math.max(0, player.y - 1);
       moved = true;
@@ -151,6 +166,11 @@ export class GameEngine {
     } else if (this.keys['d'] || this.keys['arrowright']) {
       newX = Math.min(14, player.x + 1);
       moved = true;
+    }
+    
+    // Debug: log if any movement keys are pressed (remove after testing)
+    if (Object.keys(this.keys).some(k => this.keys[k] && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k))) {
+      // Keys are being detected
     }
 
     // Check collision

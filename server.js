@@ -42,8 +42,7 @@ const server = http.createServer((req, res) => {
     if (error) {
       if (error.code === 'ENOENT') {
         res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - File Not Found</h1>', 'utf-8');
-        res.end('<a href="/">Go to Home</a>', 'utf-8');
+        res.end('<h1>404 - File Not Found</h1><a href="/">Go to Home</a>', 'utf-8');
       } else {
         res.writeHead(500);
         res.end(`Server Error: ${error.code}`, 'utf-8');

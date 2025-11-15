@@ -47,7 +47,12 @@ export function createGamePage(gameState, playerId, ws) {
   // Create game board container
   const boardContainer = document.createElement('div');
   boardContainer.className = 'game-board';
+  boardContainer.tabIndex = 0; // Make it focusable for keyboard events
+  boardContainer.style.outline = 'none'; // Remove focus outline
   gameContainer.appendChild(boardContainer);
+  
+  // Focus the game board so it can receive keyboard events
+  setTimeout(() => boardContainer.focus(), 100);
 
   // Initialize game engine
   gameEngine = new GameEngine(boardContainer, gameState, playerId, ws);
