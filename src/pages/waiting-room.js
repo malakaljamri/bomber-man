@@ -18,9 +18,11 @@ export function createWaitingRoom(state, onChatMessage) {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const form = e.target.closest('form');
-      if (form) {
-        form.dispatchEvent(new Event('submit'));
+      const input = e.target;
+      const message = input.value.trim();
+      if (message) {
+        onChatMessage(message);
+        input.value = '';
       }
     }
   };

@@ -8,8 +8,12 @@ const WS_PORT = 3001;
 
 // HTTP server for serving static files
 const server = http.createServer((req, res) => {
-  let filePath = '.' + req.url;
-  if (filePath === './') {
+  // Remove query string and hash from URL
+  let urlPath = req.url.split('?')[0].split('#')[0];
+  let filePath = '.' + urlPath;
+  
+  // Handle root path
+  if (filePath === './' || filePath === '.') {
     filePath = './index.html';
   }
 
