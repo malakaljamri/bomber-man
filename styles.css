@@ -20,3 +20,374 @@ body {
     margin: 0 auto;
 }
 
+/* Nickname Page */
+.nickname-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.nickname-container {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+}
+
+.nickname-container h1 {
+    margin-bottom: 30px;
+    color: #667eea;
+    font-size: 2.5em;
+}
+
+.nickname-input {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.nickname-input:focus {
+    border-color: #667eea;
+}
+
+.join-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.join-button:hover {
+    background: #5568d3;
+}
+
+.join-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Waiting Room */
+.waiting-room {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 20px;
+    background: white;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.waiting-room-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.waiting-room-header h1 {
+    color: #667eea;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.player-counter {
+    font-size: 1.5em;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.countdown {
+    font-size: 2em;
+    color: #667eea;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.waiting-room-content {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+}
+
+.chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+    min-height: 300px;
+    max-height: 400px;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: white;
+    border-radius: 5px;
+}
+
+.chat-message .nickname {
+    font-weight: bold;
+    color: #667eea;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+}
+
+.chat-send {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.players-list {
+    width: 250px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+}
+
+.players-list h2 {
+    margin-bottom: 15px;
+    color: #667eea;
+}
+
+.player-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+/* Game View */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #2c3e50;
+    padding: 20px;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.game-info {
+    display: flex;
+    gap: 30px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+.info-value {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.game-board {
+    position: relative;
+    width: 100%;
+    max-width: 750px;
+    margin: 0 auto;
+    background: #34495e;
+    border: 3px solid #1a252f;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    aspect-ratio: 1;
+}
+
+.cell {
+    position: relative;
+    background: #95a5a6;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    will-change: transform;
+}
+
+.cell.wall {
+    background: #34495e;
+}
+
+.cell.block {
+    background: #8b4513;
+}
+
+.cell.explosion {
+    background: #ff6b6b;
+    animation: explosion-flash 0.3s;
+}
+
+@keyframes explosion-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Game Entities */
+.player {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    top: 10%;
+    left: 10%;
+    will-change: transform;
+    transition: transform 0.1s linear;
+    z-index: 10;
+}
+
+.player.player-1 {
+    background: #e74c3c;
+}
+
+.player.player-2 {
+    background: #3498db;
+}
+
+.player.player-3 {
+    background: #2ecc71;
+}
+
+.player.player-4 {
+    background: #f39c12;
+}
+
+.bomb {
+    position: absolute;
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+    top: 15%;
+    left: 15%;
+    background: #2c3e50;
+    border: 3px solid #1a252f;
+    z-index: 5;
+    will-change: transform;
+}
+
+.power-up {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    top: 20%;
+    left: 20%;
+    border-radius: 5px;
+    z-index: 3;
+    will-change: transform;
+}
+
+.power-up.bombs {
+    background: #e74c3c;
+}
+
+.power-up.flames {
+    background: #ff6b6b;
+}
+
+.power-up.speed {
+    background: #3498db;
+}
+
+/* Performance optimizations */
+.player,
+.bomb,
+.power-up {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Game Over */
+.game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.game-over-content {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 500px;
+}
+
+.game-over-content h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+.game-over-content button {
+    padding: 15px 30px;
+    font-size: 1.2em;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
