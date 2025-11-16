@@ -164,7 +164,7 @@ export class GameEngine {
       newX = Math.max(0, player.x - 1);
       moved = true;
     } else if (this.keys['d'] || this.keys['arrowright']) {
-      newX = Math.min(14, player.x + 1);
+      newX = Math.min(14,player.x + 1);
       moved = true;
     }
     
