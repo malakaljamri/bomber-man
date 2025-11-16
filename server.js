@@ -266,7 +266,8 @@ function handlePlaceBomb(ws, data) {
     x: data.x,
     y: data.y,
     placedAt: Date.now(),
-    explosionRange: gameState.gameState.players[player.id].explosionRange || 1
+    explosionRange: gameState.gameState.players[player.id].explosionRange || 1,
+    exploded: false // Flag to prevent multiple explosions
   };
 
   if (!gameState.gameState.bombs) {
@@ -436,16 +437,20 @@ function startGameLoop() {
     const BOMB_EXPLODE_TIME = 3000; // 3 seconds
 
     // Check for bomb explosions
+    // Process bombs in reverse order to avoid index issues when removing
     if (gameState.gameState.bombs) {
-      const explodedBombs = [];
-      gameState.gameState.bombs.forEach((bomb, index) => {
-        if (now - bomb.placedAt >= BOMB_EXPLODE_TIME) {
-          explodedBombs.push({ bomb, index });
+      const bombsToRemove = [];
+      for (let i = gameState.gameState.bombs.length - 1; i >= 0; i--) {
+        const bomb = gameState.gameState.bombs[i];
+        // Only explode if time is up and bomb hasn't already exploded
+        if (!bomb.exploded && now - bomb.placedAt >= BOMB_EXPLODE_TIME) {
+          bomb.exploded = true; // Mark as exploded to prevent multiple explosions
+          explodeBomb(bomb);
+          bombsToRemove.push(i);
         }
-      });
-
-      explodedBombs.forEach(({ bomb, index }) => {
-        explodeBomb(bomb);
+      }
+      // Remove exploded bombs (in reverse order to maintain correct indices)
+      bombsToRemove.forEach(index => {
         gameState.gameState.bombs.splice(index, 1);
       });
     }
@@ -504,19 +509,24 @@ function explodeBomb(bomb) {
     }
   });
 
-  // Check for player damage
+  // Check for player damage - track which players have been hit to prevent multiple hits
+  const hitPlayers = new Set();
   Object.keys(gameState.gameState.players).forEach(playerId => {
     const player = gameState.gameState.players[playerId];
-    const hit = explosions.some(exp => exp.x === player.x && exp.y === player.y);
-    
-    if (hit && player.lives > 0) {
-      player.lives--;
-      if (player.lives === 0) {
-        // Player eliminated
-        broadcast({
-          type: 'player-eliminated',
-          playerId: playerId
-        });
+    // Only check if player hasn't been hit yet and is in an explosion cell
+    if (!hitPlayers.has(playerId) && player.lives > 0) {
+      const hit = explosions.some(exp => exp.x === player.x && exp.y === player.y);
+      
+      if (hit) {
+        hitPlayers.add(playerId);
+        player.lives--;
+        if (player.lives === 0) {
+          // Player eliminated
+          broadcast({
+            type: 'player-eliminated',
+            playerId: playerId
+          });
+        }
       }
     }
   });

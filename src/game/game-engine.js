@@ -55,7 +55,9 @@ export class GameEngine {
   setupWebSocket() {
     this.ws.on('game-update', (data) => {
       if (data.gameState) {
+        // Update game state including map changes (destroyed blocks)
         this.gameState = data.gameState;
+        // Update display to reflect any map changes
         this.updateDisplay();
       }
     });
@@ -85,8 +87,12 @@ export class GameEngine {
 
     this.ws.on('bomb-exploded', (data) => {
       if (data.explosions && data.gameState) {
+        // Update game state with new map (destroyed blocks)
         this.gameState = data.gameState;
+        // Show explosion flames
         this.showExplosions(data.explosions);
+        // Update display to show destroyed blocks are gone
+        this.updateDisplay();
       }
     });
 
@@ -282,13 +288,10 @@ export class GameEngine {
         cell.className = 'cell';
         cell.dataset.x = x;
         cell.dataset.y = y;
+        cell.style.position = 'relative';
 
-        const cellType = this.gameState.map[y][x];
-        if (cellType === 1) {
-          cell.classList.add('wall');
-        } else if (cellType === 2) {
-          cell.classList.add('block');
-        }
+        // Set cell type based on current map state
+        this.updateCellType(cell, x, y);
 
         grid.appendChild(cell);
       }
@@ -298,16 +301,42 @@ export class GameEngine {
     this.updateDisplay();
   }
 
+  updateCellType(cell, x, y) {
+    // Remove all type classes
+    cell.classList.remove('wall', 'block');
+    
+    // Add appropriate type class based on map state
+    if (this.gameState.map && this.gameState.map[y] && this.gameState.map[y][x] !== undefined) {
+      const cellType = this.gameState.map[y][x];
+      if (cellType === 1) {
+        cell.classList.add('wall');
+      } else if (cellType === 2) {
+        cell.classList.add('block');
+      }
+      // cellType === 0 means empty, no class needed
+    }
+  }
+
   updateDisplay() {
     if (!this.gridElement) return;
 
-    // Clear previous entities
+    // Update cell types based on current map state (for destroyed blocks)
     const cells = this.gridElement.querySelectorAll('.cell');
     cells.forEach(cell => {
-      // Remove entity classes but keep cell type classes
-      cell.classList.remove('explosion');
+      const x = parseInt(cell.dataset.x);
+      const y = parseInt(cell.dataset.y);
+      this.updateCellType(cell, x, y);
+    });
+
+    // Clear previous entities (but keep explosions that are animating)
+    cells.forEach(cell => {
       const entities = cell.querySelectorAll('.player, .bomb, .power-up');
-      entities.forEach(e => e.remove());
+      entities.forEach(e => {
+        // Don't remove explosion elements that are still animating
+        if (!e.classList.contains('explosion')) {
+          e.remove();
+        }
+      });
     });
 
     // Render power-ups
@@ -353,12 +382,28 @@ export class GameEngine {
     explosions.forEach(exp => {
       const cell = this.gridElement.querySelector(`[data-x="${exp.x}"][data-y="${exp.y}"]`);
       if (cell) {
-        cell.classList.add('explosion');
+        // Create flame element
+        const flame = document.createElement('div');
+        flame.className = 'explosion';
+        flame.style.position = 'absolute';
+        flame.style.width = '100%';
+        flame.style.height = '100%';
+        flame.style.top = '0';
+        flame.style.left = '0';
+        flame.style.zIndex = '15';
+        cell.appendChild(flame);
+        
+        // Remove flame after animation
         setTimeout(() => {
-          cell.classList.remove('explosion');
-        }, 300);
+          if (flame.parentNode) {
+            flame.remove();
+          }
+        }, 500);
       }
     });
+    
+    // Update display to reflect destroyed blocks
+    this.updateDisplay();
   }
 
   getPlayerInfo() {

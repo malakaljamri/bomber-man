@@ -269,14 +269,26 @@ body {
     background: #8b4513;
 }
 
-.cell.explosion {
-    background: #ff6b6b;
-    animation: explosion-flash 0.3s;
+.explosion {
+    background: radial-gradient(circle, #ff6b6b 0%, #ff0000 50%, #ff6b6b 100%);
+    border-radius: 50%;
+    animation: explosion-flash 0.5s ease-out;
+    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff6b6b;
 }
 
 @keyframes explosion-flash {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0% { 
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% { 
+        opacity: 0;
+        transform: scale(1);
+    }
 }
 
 /* Game Entities */
