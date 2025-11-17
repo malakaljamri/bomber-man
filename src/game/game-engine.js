@@ -175,9 +175,9 @@ export class GameEngine {
     }
     
     // Debug: log if any movement keys are pressed (remove after testing)
-    if (Object.keys(this.keys).some(k => this.keys[k] && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k))) {
-      // Keys are being detected
-    }
+    // if (Object.keys(this.keys).some(k => this.keys[k] && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k))) {
+    //   // Keys are being detected
+    // }
 
     // Check collision
     if (moved && this.canMoveTo(newX, newY, player.x, player.y)) {

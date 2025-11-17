@@ -436,6 +436,9 @@ function startGameLoop() {
     const now = Date.now();
     const BOMB_EXPLODE_TIME = 3000; // 3 seconds
 
+    // Track which players have been damaged in this cycle to prevent multiple hits
+    const damagedPlayersThisCycle = new Set();
+
     // Check for bomb explosions
     // Process bombs in reverse order to avoid index issues when removing
     if (gameState.gameState.bombs) {
@@ -445,7 +448,7 @@ function startGameLoop() {
         // Only explode if time is up and bomb hasn't already exploded
         if (!bomb.exploded && now - bomb.placedAt >= BOMB_EXPLODE_TIME) {
           bomb.exploded = true; // Mark as exploded to prevent multiple explosions
-          explodeBomb(bomb);
+          explodeBomb(bomb, damagedPlayersThisCycle);
           bombsToRemove.push(i);
         }
       }
@@ -463,7 +466,7 @@ function startGameLoop() {
   }, 100); // Update every 100ms
 }
 
-function explodeBomb(bomb) {
+function explodeBomb(bomb, damagedPlayersThisCycle) {
   const explosions = [];
   const range = bomb.explosionRange;
   const directions = [
@@ -509,16 +512,16 @@ function explodeBomb(bomb) {
     }
   });
 
-  // Check for player damage - track which players have been hit to prevent multiple hits
-  const hitPlayers = new Set();
+  // Check for player damage
+  // Use the shared damagedPlayersThisCycle Set to prevent multiple hits in same cycle
   Object.keys(gameState.gameState.players).forEach(playerId => {
     const player = gameState.gameState.players[playerId];
-    // Only check if player hasn't been hit yet and is in an explosion cell
-    if (!hitPlayers.has(playerId) && player.lives > 0) {
+    // Only damage if player hasn't been damaged this cycle and is in an explosion cell
+    if (!damagedPlayersThisCycle.has(playerId) && player.lives > 0) {
       const hit = explosions.some(exp => exp.x === player.x && exp.y === player.y);
       
       if (hit) {
-        hitPlayers.add(playerId);
+        damagedPlayersThisCycle.add(playerId); // Mark as damaged this cycle
         player.lives--;
         if (player.lives === 0) {
           // Player eliminated
