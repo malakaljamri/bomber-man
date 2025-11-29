@@ -95,6 +95,12 @@ ws.on('game-state', (data) => {
 
 ws.on('player-id', (data) => {
   store.dispatch({ type: 'SET_PLAYER_ID', payload: data.playerId });
+  // Only navigate to waiting room after successful join confirmation
+  const state = store.getState();
+  if (state.currentPage === 'nickname') {
+    store.dispatch({ type: 'SET_PAGE', payload: 'waiting' });
+    renderApp();
+  }
 });
 
 ws.on('player-joined', (data) => {
@@ -157,6 +163,19 @@ ws.on('game-start', (data) => {
   renderApp();
 });
 
+ws.on('error', (data) => {
+  // Handle server errors (e.g., duplicate nickname, game full, etc.)
+  const errorMessage = data.message || 'An error occurred';
+  alert(errorMessage);
+  
+  // If we're on the waiting page due to a failed join, go back to nickname page
+  const state = store.getState();
+  if (state.currentPage === 'waiting' && !state.playerId) {
+    store.dispatch({ type: 'SET_PAGE', payload: 'nickname' });
+    renderApp();
+  }
+});
+
 // Handle nickname submission
 function handleJoin(nickname) {
   store.dispatch({ type: 'SET_NICKNAME', payload: nickname });
@@ -165,16 +184,18 @@ function handleJoin(nickname) {
   if (!ws.connected) {
     ws.connect().then(() => {
       ws.send({ type: 'join', nickname: nickname });
+      // Don't navigate to waiting room yet - wait for player-id confirmation
     }).catch(error => {
       console.error('Failed to connect:', error);
       alert('Failed to connect to server. Please make sure the server is running.');
     });
   } else {
     ws.send({ type: 'join', nickname: nickname });
+    // Don't navigate to waiting room yet - wait for player-id confirmation
   }
   
-  store.dispatch({ type: 'SET_PAGE', payload: 'waiting' });
-  renderApp();
+  // Only navigate to waiting room after successful join (when player-id is received)
+  // This is handled in the 'player-id' event handler below
 }
 
 // Handle chat message

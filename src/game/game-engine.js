@@ -372,6 +372,19 @@ export class GameEngine {
       if (cell) {
         const playerEl = document.createElement('div');
         playerEl.className = `player player-${(index % 4) + 1}`;
+        
+        // Add player name label
+        const nameLabel = document.createElement('div');
+        nameLabel.className = 'player-name';
+        nameLabel.textContent = player.nickname || `Player ${index + 1}`;
+        playerEl.appendChild(nameLabel);
+        
+        // Add player lives label
+        const livesLabel = document.createElement('div');
+        livesLabel.className = 'player-lives';
+        livesLabel.textContent = `❤️ ${player.lives}`;
+        playerEl.appendChild(livesLabel);
+        
         // Grid-based positioning, no sub-pixel movement needed
         cell.appendChild(playerEl);
       }

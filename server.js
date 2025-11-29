@@ -152,10 +152,25 @@ function handleJoin(ws, nickname) {
     return;
   }
 
+  // Check for duplicate nickname (case-insensitive)
+  const trimmedNickname = (nickname || '').trim();
+  if (trimmedNickname) {
+    const isDuplicate = gameState.players.some(p => 
+      p.nickname && p.nickname.toLowerCase() === trimmedNickname.toLowerCase()
+    );
+    if (isDuplicate) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Nickname already taken. Please choose a different one.'
+      }));
+      return;
+    }
+  }
+
   const playerId = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const player = {
     id: playerId,
-    nickname: nickname || `Player ${gameState.players.length + 1}`,
+    nickname: trimmedNickname || `Player ${gameState.players.length + 1}`,
     ws: ws,
     ready: false
   };
