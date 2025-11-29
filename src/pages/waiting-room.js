@@ -2,8 +2,10 @@
 import { createElement } from '../framework/index.js';
 
 export function createWaitingRoom(state, onChatMessage) {
-  const { players, countdownTime, chatMessages } = state;
+  const { players, countdownTime, chatMessages, playerId } = state;
   const playerCount = players.length;
+  // Filter out the current player from the list (only if playerId is set)
+  const otherPlayers = playerId ? players.filter(player => player.id !== playerId) : players;
 
   const handleChatSubmit = (e) => {
     e.preventDefault();
@@ -65,7 +67,7 @@ export function createWaitingRoom(state, onChatMessage) {
       ),
       createElement('div', { className: 'players-list' },
         createElement('h2', {}, 'Players'),
-        ...players.map(player =>
+        ...otherPlayers.map(player =>
           createElement('div', { className: 'player-item' }, player.nickname)
         )
       )
