@@ -38,6 +38,10 @@ export function createGamePage(gameState, playerId, ws) {
           <div class="info-label">Speed</div>
           <div class="info-value">${playerInfo.speed.toFixed(1)}</div>
         </div>
+        <div class="info-item">
+          <div class="info-label">FPS</div>
+          <div class="info-value ${playerInfo.fps >= 60 ? 'fps-good' : 'fps-low'}">${playerInfo.fps}</div>
+        </div>
       </div>
     `;
   };
@@ -52,7 +56,17 @@ export function createGamePage(gameState, playerId, ws) {
   gameContainer.appendChild(boardContainer);
   
   // Focus the game board so it can receive keyboard events
-  setTimeout(() => boardContainer.focus(), 100);
+  // Use multiple attempts to ensure focus is set
+  setTimeout(() => {
+    boardContainer.focus();
+    // Also try clicking to ensure focus
+    boardContainer.click();
+  }, 100);
+  
+  // Re-focus when clicking on the game board
+  boardContainer.addEventListener('click', () => {
+    boardContainer.focus();
+  });
 
   // Initialize game engine
   gameEngine = new GameEngine(boardContainer, gameState, playerId, ws);

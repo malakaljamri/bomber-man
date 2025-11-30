@@ -236,6 +236,14 @@ body {
     font-weight: bold;
 }
 
+.info-value.fps-good {
+    color: #2ecc71;
+}
+
+.info-value.fps-low {
+    color: #e74c3c;
+}
+
 .game-board {
     position: relative;
     width: 100%;
