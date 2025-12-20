@@ -2,6 +2,7 @@
 import { createElement, render, Router, Store } from './framework/index.js';
 import { GameWebSocket } from './websocket.js';
 import { createNicknamePage } from './pages/nickname-page.js';
+import { createCharacterSelectionPage } from './pages/character-selection-page.js';
 import { createWaitingRoom } from './pages/waiting-room.js';
 import { createGamePage } from './pages/game-page.js';
 
@@ -10,6 +11,7 @@ const store = new Store({
   currentPage: 'nickname',
   nickname: '',
   playerId: null,
+  selectedCharacter: null,
   players: [],
   gameState: null,
   chatMessages: [],
@@ -17,6 +19,9 @@ const store = new Store({
   countdownActive: false,
   gameStarted: false
 });
+
+// Make store globally accessible for game page
+window.store = store;
 
 // Initialize WebSocket
 const ws = new GameWebSocket();
@@ -35,6 +40,9 @@ store.setReducer((state, action) => {
     
     case 'SET_NICKNAME':
       return { ...state, nickname: action.payload };
+    
+    case 'SET_SELECTED_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
     
     case 'SET_PLAYER_ID':
       return { ...state, playerId: action.payload };
@@ -66,6 +74,7 @@ store.setReducer((state, action) => {
         currentPage: 'nickname',
         nickname: '',
         playerId: null,
+        selectedCharacter: null,
         players: [],
         gameState: null,
         chatMessages: [],
@@ -97,7 +106,7 @@ ws.on('player-id', (data) => {
   store.dispatch({ type: 'SET_PLAYER_ID', payload: data.playerId });
   // Only navigate to waiting room after successful join confirmation
   const state = store.getState();
-  if (state.currentPage === 'nickname') {
+  if (state.currentPage === 'character-selection') {
     store.dispatch({ type: 'SET_PAGE', payload: 'waiting' });
     renderApp();
   }
@@ -120,6 +129,11 @@ ws.on('chat-message', (data) => {
       timestamp: data.timestamp
     }
   });
+  
+  // Update chat in game if active
+  if (cleanupGame && cleanupGame.updateChat) {
+    cleanupGame.updateChat();
+  }
 });
 
 ws.on('countdown-start', (data) => {
@@ -127,9 +141,9 @@ ws.on('countdown-start', (data) => {
   
   // Update countdown
   const countdownInterval = setInterval(() => {
-    const state = store.getState();
-    if (state.countdownTime !== null && state.countdownTime > 0) {
-      const newTime = Math.max(0, state.countdownTime - 100);
+    const currentState = store.getState();
+    if (currentState.countdownTime !== null && currentState.countdownTime > 0) {
+      const newTime = Math.max(0, currentState.countdownTime - 100);
       store.dispatch({ type: 'SET_COUNTDOWN', payload: newTime });
       
       if (newTime === 0) {
@@ -179,18 +193,26 @@ ws.on('error', (data) => {
 // Handle nickname submission
 function handleJoin(nickname) {
   store.dispatch({ type: 'SET_NICKNAME', payload: nickname });
+  // Navigate to character selection
+  store.dispatch({ type: 'SET_PAGE', payload: 'character-selection' });
+  renderApp();
+}
+
+// Handle character selection
+function handleCharacterSelect(character) {
+  store.dispatch({ type: 'SET_SELECTED_CHARACTER', payload: character });
   
   // Connect WebSocket if not connected
   if (!ws.connected) {
     ws.connect().then(() => {
-      ws.send({ type: 'join', nickname: nickname });
+      ws.send({ type: 'join', nickname: store.getState().nickname, character: character });
       // Don't navigate to waiting room yet - wait for player-id confirmation
     }).catch(error => {
       console.error('Failed to connect:', error);
       alert('Failed to connect to server. Please make sure the server is running.');
     });
   } else {
-    ws.send({ type: 'join', nickname: nickname });
+    ws.send({ type: 'join', nickname: store.getState().nickname, character: character });
     // Don't navigate to waiting room yet - wait for player-id confirmation
   }
   
@@ -221,6 +243,10 @@ function renderApp() {
       pageElement = createNicknamePage(handleJoin);
       break;
     
+    case 'character-selection':
+      pageElement = createCharacterSelectionPage(handleCharacterSelect);
+      break;
+    
     case 'waiting':
       pageElement = createWaitingRoom(state, handleChatMessage);
       break;
@@ -228,7 +254,7 @@ function renderApp() {
     case 'game':
       if (state.gameState && state.playerId) {
         // Game page is rendered directly, not through framework
-        cleanupGame = createGamePage(state.gameState, state.playerId, ws);
+        cleanupGame = createGamePage(state.gameState, state.playerId, ws, handleChatMessage, state.chatMessages);
         return; // Don't render through framework for game page
       }
       break;
@@ -269,6 +295,7 @@ router.addRoute('/game', () => {
 // Subscribe to store changes
 store.subscribe(() => {
   const state = store.getState();
+  // Only render if we're not in game phase, but always update waiting room for chat
   if (state.currentPage !== 'game') {
     renderApp();
   }

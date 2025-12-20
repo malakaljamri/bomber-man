@@ -1,11 +1,12 @@
 // Game Engine - Core game logic and rendering
 
 export class GameEngine {
-  constructor(container, gameState, playerId, ws) {
+  constructor(container, gameState, playerId, ws, selectedCharacter = null) {
     this.container = container;
     this.gameState = gameState;
     this.playerId = playerId;
     this.ws = ws;
+    this.selectedCharacter = selectedCharacter;
     this.keys = {};
     this.lastFrameTime = 0;
     this.fps = 60;
@@ -440,7 +441,19 @@ export class GameEngine {
       const cell = this.cellCache[`${x},${y}`];
       if (cell) {
         const playerEl = document.createElement('div');
-        playerEl.className = `player player-${(index % 4) + 1}`;
+        playerEl.className = 'player';
+        
+        // Add character image if available
+        if (player.character && player.character.image) {
+          const charImg = document.createElement('img');
+          charImg.src = player.character.image;
+          charImg.alt = player.character.name || 'Character';
+          charImg.className = 'character-sprite';
+          playerEl.appendChild(charImg);
+        } else {
+          // Fallback to generic player class
+          playerEl.className += ` player-${(index % 4) + 1}`;
+        }
         
         // Add player name label
         const nameLabel = document.createElement('div');
