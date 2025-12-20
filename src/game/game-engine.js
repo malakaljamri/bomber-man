@@ -40,6 +40,12 @@ export class GameEngine {
 
     // Handle both window and container focus
     const handleKeyDown = (e) => {
+      // Skip processing if user is typing in an input field
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+        return;
+      }
+      
       // Prevent default for game controls to avoid scrolling
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
@@ -51,6 +57,12 @@ export class GameEngine {
     };
 
     const handleKeyUp = (e) => {
+      // Skip processing if user is typing in an input field
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+        return;
+      }
+      
       const key = normalizeKey(e.key);
       this.keys[key] = false;
     };
