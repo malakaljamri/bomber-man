@@ -81,7 +81,7 @@ export function createGamePage(gameState, playerId, ws, onChatMessage, chatMessa
         ${messagesHtml}
       </div>
       <form class="game-chat-input-container">
-        <input type="text" class="game-chat-input" placeholder="Type a message...">
+        <input type="text" class="game-chat-input" placeholder="Type a message..." maxLength="20">
         <button type="submit" class="game-chat-send">Send</button>
       </form>
     `;
@@ -93,7 +93,7 @@ export function createGamePage(gameState, playerId, ws, onChatMessage, chatMessa
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const message = input.value.trim();
-      if (message) {
+      if (message && message.length <= 20) {
         onChatMessage(message);
         input.value = '';
       }
@@ -103,7 +103,7 @@ export function createGamePage(gameState, playerId, ws, onChatMessage, chatMessa
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const message = input.value.trim();
-        if (message) {
+        if (message && message.length <= 20) {
           onChatMessage(message);
           input.value = '';
         }

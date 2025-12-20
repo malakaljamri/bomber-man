@@ -11,7 +11,7 @@ export function createWaitingRoom(state, onChatMessage) {
     e.preventDefault();
     const input = e.target.querySelector('.chat-input');
     const message = input.value.trim();
-    if (message) {
+    if (message && message.length <= 20) {
       onChatMessage(message);
       input.value = '';
     }
@@ -22,7 +22,7 @@ export function createWaitingRoom(state, onChatMessage) {
       e.preventDefault();
       const input = e.target;
       const message = input.value.trim();
-      if (message) {
+      if (message && message.length <= 20) {
         onChatMessage(message);
         input.value = '';
       }
@@ -38,7 +38,7 @@ export function createWaitingRoom(state, onChatMessage) {
       createElement('img', {
         src: '../bomberman_icon.jpg',
         alt: 'Bomberman Icon',
-        style: 'width: 80px; height: 80px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);'
+        style: 'width: 120px; height: 120px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);'
       }),
       createElement('h1', {}, 'Waiting Room'),
       createElement('div', { className: 'player-counter' },
@@ -62,6 +62,7 @@ export function createWaitingRoom(state, onChatMessage) {
             type: 'text',
             className: 'chat-input',
             placeholder: 'Type a message...',
+            maxLength: 20,
             onKeyPress: handleKeyPress
           }),
           createElement('button', {
