@@ -2,6 +2,22 @@
 
 export class GameEngine {
   constructor(container, gameState, playerId, ws, selectedCharacter = null) {
+    console.log('GameEngine: Constructor called with:', { container, gameState, playerId, ws, selectedCharacter });
+    
+    // Validate required parameters
+    if (!container) {
+      throw new Error('GameEngine: Container is required');
+    }
+    if (!gameState) {
+      throw new Error('GameEngine: GameState is required');
+    }
+    if (!playerId) {
+      throw new Error('GameEngine: PlayerId is required');
+    }
+    if (!ws) {
+      throw new Error('GameEngine: WebSocket is required');
+    }
+    
     this.container = container;
     this.gameState = gameState;
     this.playerId = playerId;
@@ -23,6 +39,76 @@ export class GameEngine {
 
     this.setupControls();
     this.setupWebSocket();
+  }
+
+  checkGameOver() {
+    if (!this.gameState.players) return;
+    
+    // Count alive players
+    const alivePlayers = Object.keys(this.gameState.players).filter(playerId => {
+      const player = this.gameState.players[playerId];
+      return player && player.lives > 0;
+    });
+    
+    // Remove dead players from the game completely
+    this.removeDeadPlayers();
+    
+    // If only one player is alive, declare winner
+    if (alivePlayers.length === 1) {
+      const winnerId = alivePlayers[0];
+      const winner = this.gameState.players[winnerId];
+      this.showGameOver(winner);
+    }
+  }
+
+  removeDeadPlayers() {
+    if (!this.gameState.players) return;
+    
+    // Remove players with 0 or negative lives from the game state
+    Object.keys(this.gameState.players).forEach(playerId => {
+      const player = this.gameState.players[playerId];
+      if (player && player.lives <= 0) {
+        console.log(`Removing dead player: ${player.nickname || playerId}`);
+        delete this.gameState.players[playerId];
+      }
+    });
+  }
+
+  showGameOver(winner) {
+    // Stop the game
+    this.stop();
+    
+    // Create game over overlay
+    const gameOverDiv = document.createElement('div');
+    gameOverDiv.className = 'game-over';
+    gameOverDiv.innerHTML = `
+      <div class="game-over-content">
+        <h2>🎉 Game Over! 🎉</h2>
+        <p style="font-size: 1.5em; margin: 20px 0;">
+          <strong>Winner: ${winner.nickname || 'Unknown Player'}</strong>
+        </p>
+        <p style="font-size: 1.2em; color: #666; margin-bottom: 30px;">
+          Congratulations! You are the last survivor!
+        </p>
+        <button onclick="location.reload()" style="
+          padding: 15px 30px;
+          font-size: 1.2em;
+          background: #667eea;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background 0.3s;
+        " onmouseover="this.style.background='#5a6fd8'" onmouseout="this.style.background='#667eea'">
+          Play Again
+        </button>
+      </div>
+    `;
+    
+    // Add to container
+    this.container.appendChild(gameOverDiv);
+    
+    console.log(`Game Over! Winner: ${winner.nickname}`);
   }
 
   setupControls() {
@@ -157,11 +243,16 @@ export class GameEngine {
         this.showExplosions(data.explosions);
         // Update display to show destroyed blocks are gone
         this.updateDisplay();
+        // Check for game over after bomb explosion (players may have died)
+        this.checkGameOver();
       }
     });
 
     this.ws.on('player-eliminated', (data) => {
+      console.log('Player eliminated:', data);
       this.updateDisplay();
+      // Check for game over after player elimination
+      this.checkGameOver();
     });
 
     this.ws.on('power-up-collected', (data) => {
@@ -173,8 +264,14 @@ export class GameEngine {
   }
 
   start() {
-    this.render();
-    this.gameLoop();
+    console.log('GameEngine: Starting game...');
+    try {
+      this.render();
+      this.gameLoop();
+      console.log('GameEngine: Game started successfully');
+    } catch (error) {
+      console.error('GameEngine: Error starting game:', error);
+    }
   }
 
   stop() {
@@ -208,6 +305,14 @@ export class GameEngine {
   }
 
   update(deltaTime) {
+    if (!this.gameState || !this.gameState.players || !this.playerId) {
+      console.warn('GameEngine: Missing gameState, players, or playerId');
+      return;
+    }
+    
+    // Check for game over condition
+    this.checkGameOver();
+    
     const player = this.gameState.players[this.playerId];
     if (!player || player.lives <= 0) return;
 
@@ -336,6 +441,11 @@ export class GameEngine {
   }
 
   render() {
+    console.log('GameEngine: Starting render...');
+    console.log('GameEngine: Container:', this.container);
+    console.log('GameEngine: GameState:', this.gameState);
+    console.log('GameEngine: PlayerId:', this.playerId);
+    
     this.container.innerHTML = '';
     
     const grid = document.createElement('div');
@@ -368,6 +478,7 @@ export class GameEngine {
 
     this.container.appendChild(grid);
     this.updateDisplay();
+    console.log('GameEngine: Render completed');
   }
 
   updateCellType(cell, x, y) {
@@ -375,7 +486,7 @@ export class GameEngine {
     cell.classList.remove('wall', 'block');
     
     // Add appropriate type class based on map state
-    if (this.gameState.map && this.gameState.map[y] && this.gameState.map[y][x] !== undefined) {
+    if (this.gameState && this.gameState.map && this.gameState.map[y] && this.gameState.map[y][x] !== undefined) {
       const cellType = this.gameState.map[y][x];
       if (cellType === 1) {
         cell.classList.add('wall');
@@ -395,6 +506,9 @@ export class GameEngine {
       return;
     }
     this.lastDisplayUpdate = now;
+
+    // Remove dead players before updating display
+    this.removeDeadPlayers();
 
     // Track which cells need entity updates
     const cellsWithEntities = new Set();

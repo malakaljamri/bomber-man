@@ -133,14 +133,27 @@ export function createGamePage(gameState, playerId, ws, onChatMessage, chatMessa
   });
 
   // Initialize game engine
-  gameEngine = new GameEngine(boardContainer, gameState, playerId, ws, window.store.getState().selectedCharacter);
+  console.log('GamePage: Initializing game engine...');
+  console.log('GamePage: Container:', boardContainer);
+  console.log('GamePage: GameState:', gameState);
+  console.log('GamePage: PlayerId:', playerId);
+  console.log('GamePage: SelectedCharacter:', window.store.getState().selectedCharacter);
   
-  // Update header periodically
-  const headerUpdateInterval = setInterval(updateHeader, 100);
-  updateHeader();
+  let headerUpdateInterval = null;
+  
+  try {
+    gameEngine = new GameEngine(boardContainer, gameState, playerId, ws, window.store.getState().selectedCharacter);
+    
+    // Update header periodically
+    headerUpdateInterval = setInterval(updateHeader, 100);
+    updateHeader();
 
-  // Start game loop
-  gameEngine.start();
+    // Start game loop
+    gameEngine.start();
+    console.log('GamePage: Game engine started successfully');
+  } catch (error) {
+    console.error('GamePage: Error initializing game engine:', error);
+  }
 
   // Return cleanup function and chat update function
   const cleanup = () => {
@@ -148,7 +161,9 @@ export function createGamePage(gameState, playerId, ws, onChatMessage, chatMessa
       gameEngine.stop();
       gameEngine = null;
     }
-    clearInterval(headerUpdateInterval);
+    if (headerUpdateInterval) {
+      clearInterval(headerUpdateInterval);
+    }
   };
   
   // Store update function for external access
