@@ -36,6 +36,7 @@ export class GameEngine {
     this.entityCache = {}; // Cache entity elements to avoid recreation
     this.lastDisplayUpdate = 0;
     this.displayUpdateThrottle = 16; // Update display max once per frame (60fps)
+    this.previousPlayerStats = {}; // Track previous player stats for increment validation
 
     this.setupControls();
     this.setupWebSocket();
@@ -258,6 +259,13 @@ export class GameEngine {
     this.ws.on('power-up-collected', (data) => {
       if (data.gameState) {
         this.gameState = data.gameState;
+        
+        // Validate power-up increments for the local player
+        const localPlayer = this.gameState.players[this.playerId];
+        if (localPlayer && data.powerUpType) {
+          this.validatePowerUpIncrement(localPlayer, data.powerUpType);
+        }
+        
         this.updateDisplay();
       }
     });
@@ -267,6 +275,18 @@ export class GameEngine {
     console.log('GameEngine: Starting game...');
     try {
       this.render();
+      
+      // Initialize previous stats for power-up tracking
+      if (this.gameState.players && this.gameState.players[this.playerId]) {
+        const player = this.gameState.players[this.playerId];
+        this.previousPlayerStats[this.playerId] = {
+          maxBombs: player.maxBombs || 1,
+          explosionRange: player.explosionRange || 1,
+          speed: player.speed || 1
+        };
+        console.log('Initialized player stats tracking:', this.previousPlayerStats[this.playerId]);
+      }
+      
       this.gameLoop();
       console.log('GameEngine: Game started successfully');
     } catch (error) {
@@ -315,6 +335,15 @@ export class GameEngine {
     
     const player = this.gameState.players[this.playerId];
     if (!player || player.lives <= 0) return;
+    
+    // Update previous stats tracking
+    if (this.previousPlayerStats[this.playerId]) {
+      this.previousPlayerStats[this.playerId] = {
+        maxBombs: player.maxBombs || 1,
+        explosionRange: player.explosionRange || 1,
+        speed: player.speed || 1
+      };
+    }
 
     // Grid-based movement - move one cell at a time
     // Base speed: 150ms per cell, faster with speed power-up
@@ -643,6 +672,64 @@ export class GameEngine {
       speed: player.speed || 1,
       fps: this.currentFps
     };
+  }
+
+  // Validate and ensure power-up increments are exactly +1
+  validatePowerUpIncrement(player, powerUpType) {
+    if (!player || !this.playerId) return;
+    
+    const playerId = this.playerId;
+    const previousStats = this.previousPlayerStats[playerId] || {
+      maxBombs: 1,
+      explosionRange: 1,
+      speed: 1
+    };
+    
+    const currentBombs = player.maxBombs || 1;
+    const currentRange = player.explosionRange || 1;
+    const currentSpeed = player.speed || 1;
+    
+    // Calculate expected values (previous + 1 for bombs and flames)
+    const expectedBombs = previousStats.maxBombs + 1;
+    const expectedRange = previousStats.explosionRange + 1;
+    
+    let corrected = false;
+    
+    // Ensure bomb power-ups increment by exactly +1
+    if (powerUpType === 'bombs') {
+      if (currentBombs !== expectedBombs) {
+        player.maxBombs = expectedBombs;
+        console.log(`Bomb power-up corrected: Set to ${expectedBombs} (was ${currentBombs})`);
+        corrected = true;
+      } else {
+        console.log(`Bomb power-up: Correctly incremented to ${currentBombs}`);
+      }
+    }
+    
+    // Ensure flame power-ups increment by exactly +1
+    if (powerUpType === 'flames') {
+      if (currentRange !== expectedRange) {
+        player.explosionRange = expectedRange;
+        console.log(`Flame power-up corrected: Set to ${expectedRange} (was ${currentRange})`);
+        corrected = true;
+      } else {
+        console.log(`Flame power-up: Correctly incremented to ${currentRange}`);
+      }
+    }
+    
+    // Speed can increment by any amount (log for debugging)
+    if (powerUpType === 'speed') {
+      console.log(`Speed power-up: Current speed ${currentSpeed} (was ${previousStats.speed})`);
+    }
+    
+    // Update previous stats for next validation
+    this.previousPlayerStats[playerId] = {
+      maxBombs: player.maxBombs || 1,
+      explosionRange: player.explosionRange || 1,
+      speed: player.speed || 1
+    };
+    
+    return corrected;
   }
 }
 
