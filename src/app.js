@@ -2,7 +2,6 @@
 import { createElement, render, Router, Store } from './framework/index.js';
 import { GameWebSocket } from './websocket.js';
 import { createNicknamePage } from './pages/nickname-page.js';
-import { createCharacterSelectionPage } from './pages/character-selection-page.js';
 import { createWaitingRoom } from './pages/waiting-room.js';
 import { createGamePage } from './pages/game-page.js';
 
@@ -11,7 +10,6 @@ const store = new Store({
   currentPage: 'nickname',
   nickname: '',
   playerId: null,
-  selectedCharacter: null,
   players: [],
   gameState: null,
   chatMessages: [],
@@ -41,8 +39,6 @@ store.setReducer((state, action) => {
     case 'SET_NICKNAME':
       return { ...state, nickname: action.payload };
     
-    case 'SET_SELECTED_CHARACTER':
-      return { ...state, selectedCharacter: action.payload };
     
     case 'SET_PLAYER_ID':
       return { ...state, playerId: action.payload };
@@ -74,7 +70,6 @@ store.setReducer((state, action) => {
         currentPage: 'nickname',
         nickname: '',
         playerId: null,
-        selectedCharacter: null,
         players: [],
         gameState: null,
         chatMessages: [],
@@ -104,12 +99,6 @@ ws.on('game-state', (data) => {
 
 ws.on('player-id', (data) => {
   store.dispatch({ type: 'SET_PLAYER_ID', payload: data.playerId });
-  // Only navigate to waiting room after successful join confirmation
-  const state = store.getState();
-  if (state.currentPage === 'character-selection') {
-    store.dispatch({ type: 'SET_PAGE', payload: 'waiting' });
-    renderApp();
-  }
 });
 
 ws.on('player-joined', (data) => {
@@ -193,32 +182,24 @@ ws.on('error', (data) => {
 // Handle nickname submission
 function handleJoin(nickname) {
   store.dispatch({ type: 'SET_NICKNAME', payload: nickname });
-  // Navigate to character selection
-  store.dispatch({ type: 'SET_PAGE', payload: 'character-selection' });
-  renderApp();
-}
-
-// Handle character selection
-function handleCharacterSelect(character) {
-  store.dispatch({ type: 'SET_SELECTED_CHARACTER', payload: character });
   
   // Connect WebSocket if not connected
   if (!ws.connected) {
     ws.connect().then(() => {
-      ws.send({ type: 'join', nickname: store.getState().nickname, character: character });
-      // Don't navigate to waiting room yet - wait for player-id confirmation
+      ws.send({ type: 'join', nickname: nickname });
     }).catch(error => {
       console.error('Failed to connect:', error);
       alert('Failed to connect to server. Please make sure the server is running.');
     });
   } else {
-    ws.send({ type: 'join', nickname: store.getState().nickname, character: character });
-    // Don't navigate to waiting room yet - wait for player-id confirmation
+    ws.send({ type: 'join', nickname: nickname });
   }
   
-  // Only navigate to waiting room after successful join (when player-id is received)
-  // This is handled in the 'player-id' event handler below
+  // Navigate directly to waiting room
+  store.dispatch({ type: 'SET_PAGE', payload: 'waiting' });
+  renderApp();
 }
+
 
 // Handle chat message
 function handleChatMessage(message) {
@@ -243,9 +224,6 @@ function renderApp() {
       pageElement = createNicknamePage(handleJoin);
       break;
     
-    case 'character-selection':
-      pageElement = createCharacterSelectionPage(handleCharacterSelect);
-      break;
     
     case 'waiting':
       pageElement = createWaitingRoom(state, handleChatMessage);
