@@ -179,6 +179,22 @@ ws.on('error', (data) => {
   }
 });
 
+ws.on('session-terminated', (data) => {
+  // Handle game session termination (e.g., no players remaining)
+  const message = data.message || 'Game session terminated - no players remaining';
+  console.log('Session terminated:', message);
+  
+  // Reset game state
+  store.dispatch({ type: 'RESET' });
+  
+  // Navigate back to nickname page
+  store.dispatch({ type: 'SET_PAGE', payload: 'nickname' });
+  renderApp();
+  
+  // Show notification to user
+  alert(message);
+});
+
 // Handle nickname submission
 function handleJoin(nickname) {
   store.dispatch({ type: 'SET_NICKNAME', payload: nickname });

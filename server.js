@@ -70,6 +70,11 @@ const gameState = {
   countdownActive: false
 };
 
+// Store references to timers for cleanup
+let gameLoopInterval = null;
+let waitingTimer = null;
+let countdownTimer = null;
+
 const MAX_PLAYERS = 4;
 const WAIT_TIME = 20000; // 20 seconds
 const COUNTDOWN_TIME = 10000; // 10 seconds
@@ -98,7 +103,14 @@ wss.on('connection', (ws) => {
         playerId: player.id,
         players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname }))
       });
-      checkGameStart();
+      
+      // Terminate game session if no players remain
+      if (gameState.players.length === 0) {
+        console.log('No players remaining, terminating game session');
+        terminateGameSession();
+      } else {
+        checkGameStart();
+      }
     }
   });
 
@@ -316,10 +328,16 @@ function checkGameStart() {
     // Start 20 second wait timer
     gameState.waitingStartTime = Date.now();
     
-    setTimeout(() => {
+    // Clear any existing waiting timer
+    if (waitingTimer) {
+      clearTimeout(waitingTimer);
+    }
+    
+    waitingTimer = setTimeout(() => {
       if (gameState.players.length >= 2 && !gameState.gameStarted && !gameState.countdownActive) {
         startCountdown();
       }
+      waitingTimer = null;
     }, WAIT_TIME);
   }
 
@@ -334,18 +352,24 @@ function startCountdown() {
   gameState.countdownActive = true;
   gameState.countdownStartTime = Date.now();
 
+  // Clear any existing countdown timer
+  if (countdownTimer) {
+    clearTimeout(countdownTimer);
+  }
+
   broadcast({
     type: 'countdown-start',
     time: COUNTDOWN_TIME
   });
 
-  setTimeout(() => {
+  countdownTimer = setTimeout(() => {
     if (gameState.players.length >= 2) {
       startGame();
     } else {
       gameState.countdownActive = false;
       gameState.countdownStartTime = null;
     }
+    countdownTimer = null;
   }, COUNTDOWN_TIME);
 }
 
@@ -442,9 +466,15 @@ function generateMap(size) {
 }
 
 function startGameLoop() {
-  const gameLoop = setInterval(() => {
+  // Clear any existing game loop
+  if (gameLoopInterval) {
+    clearInterval(gameLoopInterval);
+  }
+  
+  gameLoopInterval = setInterval(() => {
     if (!gameState.gameStarted || !gameState.gameState) {
-      clearInterval(gameLoop);
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
       return;
     }
 
@@ -554,6 +584,41 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
     type: 'bomb-exploded',
     explosions: explosions,
     gameState: gameState.gameState
+  });
+}
+
+function terminateGameSession() {
+  console.log('Terminating game session - no players remaining');
+  
+  // Clear game loop if running
+  if (gameLoopInterval) {
+    clearInterval(gameLoopInterval);
+    gameLoopInterval = null;
+  }
+  
+  // Clear waiting timer if active
+  if (waitingTimer) {
+    clearTimeout(waitingTimer);
+    waitingTimer = null;
+  }
+  
+  // Clear countdown timer if active
+  if (countdownTimer) {
+    clearTimeout(countdownTimer);
+    countdownTimer = null;
+  }
+  
+  // Reset game state
+  gameState.gameStarted = false;
+  gameState.gameState = null;
+  gameState.waitingStartTime = null;
+  gameState.countdownStartTime = null;
+  gameState.countdownActive = false;
+  
+  // Broadcast session termination to all connected clients
+  broadcast({
+    type: 'session-terminated',
+    message: 'Game session terminated - no players remaining'
   });
 }
 
