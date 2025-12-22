@@ -41,7 +41,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     text-align: center;
-    max-width: 400px;
+    max-width: 800px;
     width: 100%;
 }
 
@@ -108,13 +108,19 @@ body {
     box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
 }
 
+.character-selection-section {
+    margin-bottom: 30px;
+}
+
 .character-image {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
     border-radius: 8px;
     margin-bottom: 10px;
-    image-rendering: auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
 .character-name {
@@ -554,17 +560,18 @@ body {
 /* Game Entities */
 .player {
     position: absolute;
-    width: 80%;
-    height: 80%;
+    width: 90%;
+    height: 90%;
     border-radius: 50%;
-    top: 10%;
-    left: 10%;
+    top: 5%;
+    left: 5%;
     will-change: transform;
     transition: transform 0.1s linear, box-shadow 0.2s ease;
     z-index: 10;
     box-shadow: 
         0 4px 8px rgba(0, 0, 0, 0.3),
         inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    overflow: visible;
 }
 
 .player.player-1 {
@@ -609,7 +616,7 @@ body {
 
 .player-name {
     position: absolute;
-    top: 10%;
+    top: -10%;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.7em;
@@ -627,7 +634,7 @@ body {
 
 .player-lives {
     position: absolute;
-    top: 50%;
+    top: 80%;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.6em;
@@ -641,6 +648,32 @@ body {
     pointer-events: none;
     z-index: 20;
     user-select: none;
+}
+
+/* Character sprite styling */
+.character-sprite {
+    width: 150%;
+    height: 150%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+    z-index: 15;
+    pointer-events: none;
+}
+
+/* Player with character sprite - remove background styling */
+.player.has-character {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.player.has-character::before {
+    display: none;
 }
 
 .bomb {

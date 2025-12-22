@@ -117,7 +117,7 @@ wss.on('connection', (ws) => {
   // Send current game state to new connection
   ws.send(JSON.stringify({
     type: 'game-state',
-    players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname })),
+    players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname, character: p.character })),
     gameStarted: gameState.gameStarted,
     countdownActive: gameState.countdownActive,
     countdownTime: gameState.countdownActive ? 
@@ -128,7 +128,7 @@ wss.on('connection', (ws) => {
 function handleMessage(ws, data) {
   switch (data.type) {
     case 'join':
-      handleJoin(ws, data.nickname);
+      handleJoin(ws, data.nickname, data.character);
       break;
     case 'chat':
       handleChat(ws, data.message);
@@ -147,7 +147,7 @@ function handleMessage(ws, data) {
   }
 }
 
-function handleJoin(ws, nickname) {
+function handleJoin(ws, nickname, character) {
   if (gameState.players.length >= MAX_PLAYERS) {
     ws.send(JSON.stringify({
       type: 'error',
@@ -184,7 +184,8 @@ function handleJoin(ws, nickname) {
     id: playerId,
     nickname: trimmedNickname || `Player ${gameState.players.length + 1}`,
     ws: ws,
-    ready: false
+    ready: false,
+    character: character || null
   };
 
   gameState.players.push(player);
@@ -197,8 +198,8 @@ function handleJoin(ws, nickname) {
 
   broadcast({
     type: 'player-joined',
-    player: { id: player.id, nickname: player.nickname },
-    players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname }))
+    player: { id: player.id, nickname: player.nickname, character: player.character },
+    players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname, character: p.character }))
   }, ws);
 
   checkGameStart();
@@ -410,7 +411,8 @@ function startGame() {
       maxBombs: 1,
       explosionRange: 1,
       speed: 1,
-      bombsPlaced: 0
+      bombsPlaced: 0,
+      character: player.character || null
     };
   });
 
@@ -503,6 +505,22 @@ function startGameLoop() {
       });
     }
 
+    // Ensure character data is preserved in gameState before broadcasting
+    // Character data should already be in gameState.gameState.players[playerId].character
+    // but we'll ensure it's there by checking against the original player data
+    if (gameState.gameState.players) {
+      Object.keys(gameState.gameState.players).forEach(playerId => {
+        const gamePlayer = gameState.gameState.players[playerId];
+        // If character data is missing, restore it from the original player data
+        if (!gamePlayer.character) {
+          const originalPlayer = gameState.players.find(p => p.id === playerId);
+          if (originalPlayer && originalPlayer.character) {
+            gamePlayer.character = originalPlayer.character;
+          }
+        }
+      });
+    }
+    
     // Broadcast game state updates
     broadcast({
       type: 'game-update',
@@ -524,6 +542,10 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
   // Center explosion
   explosions.push({ x: bomb.x, y: bomb.y });
 
+  // Check for chain explosions - bombs hit by this explosion
+  const now = Date.now();
+  const CHAIN_EXPLOSION_DELAY = 300; // 300ms delay for chain explosions
+
   // Explosions in each direction
   directions.forEach(dir => {
     for (let i = 1; i <= range; i++) {
@@ -537,6 +559,33 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
       
       explosions.push({ x, y });
 
+      // Check if there's a bomb at this explosion location
+      if (gameState.gameState.bombs) {
+        const bombAtLocation = gameState.gameState.bombs.find(b => 
+          Math.floor(b.x) === x && Math.floor(b.y) === y && !b.exploded
+        );
+        if (bombAtLocation) {
+          // Schedule chain explosion after 300ms
+          setTimeout(() => {
+            // Check if bomb still exists and hasn't exploded yet
+            const stillExists = gameState.gameState.bombs && 
+              gameState.gameState.bombs.find(b => b.id === bombAtLocation.id && !b.exploded);
+            if (stillExists) {
+              // Mark bomb as exploded to prevent multiple explosions
+              bombAtLocation.exploded = true;
+              // Remove bomb from array
+              const bombIndex = gameState.gameState.bombs.findIndex(b => b.id === bombAtLocation.id);
+              if (bombIndex !== -1) {
+                gameState.gameState.bombs.splice(bombIndex, 1);
+              }
+              // Create a new damagedPlayersThisCycle set for the chain explosion
+              const chainDamagedPlayers = new Set();
+              explodeBomb(bombAtLocation, chainDamagedPlayers);
+            }
+          }, CHAIN_EXPLOSION_DELAY);
+        }
+      }
+
       if (cell === 2) {
         // Destroy block
         gameState.gameState.map[y][x] = 0;
@@ -545,6 +594,9 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
         if (Math.random() < 0.3) {
           const powerUpTypes = ['bombs', 'flames', 'speed'];
           const powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+          if (!gameState.gameState.powerUps) {
+            gameState.gameState.powerUps = [];
+          }
           gameState.gameState.powerUps.push({
             id: `powerup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: powerUpType,

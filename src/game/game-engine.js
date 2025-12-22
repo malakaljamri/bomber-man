@@ -37,6 +37,8 @@ export class GameEngine {
     this.lastDisplayUpdate = 0;
     this.displayUpdateThrottle = 16; // Update display max once per frame (60fps)
     this.previousPlayerStats = {}; // Track previous player stats for increment validation
+    this.playerDirections = {}; // Track direction for each player: 'Up', 'Down', 'Left', 'Right'
+    this.playerPreviousPositions = {}; // Track previous positions to determine direction
 
     this.setupControls();
     this.setupWebSocket();
@@ -65,12 +67,21 @@ export class GameEngine {
   removeDeadPlayers() {
     if (!this.gameState.players) return;
     
-    // Remove players with 0 or negative lives from the game state
+    // Remove players with less than 1 life from the game state
     Object.keys(this.gameState.players).forEach(playerId => {
       const player = this.gameState.players[playerId];
-      if (player && player.lives <= 0) {
+      if (player && player.lives < 1) {
         console.log(`Removing dead player: ${player.nickname || playerId}`);
+        // Remove from game state
         delete this.gameState.players[playerId];
+        // Remove from entity cache
+        const existingPlayer = this.entityCache[`player-${playerId}`];
+        if (existingPlayer && existingPlayer.parentNode) {
+          existingPlayer.remove();
+        }
+        delete this.entityCache[`player-${playerId}`];
+        delete this.playerDirections[playerId];
+        delete this.playerPreviousPositions[playerId];
       }
     });
   }
@@ -168,7 +179,7 @@ export class GameEngine {
 
   handleKeyPress(e) {
     const player = this.gameState.players[this.playerId];
-    if (!player || player.lives <= 0) return;
+    if (!player || player.lives < 1) return;
 
     const normalizedKey = e.key === ' ' ? 'space' : e.key.toLowerCase();
     if (normalizedKey === 'space' || e.key === 'Spacebar') {
@@ -182,8 +193,37 @@ export class GameEngine {
       if (data.gameState) {
         // Check if map changed (blocks destroyed)
         const mapChanged = JSON.stringify(this.gameState.map) !== JSON.stringify(data.gameState.map);
+        
+        // Preserve character data from previous gameState before replacing
+        const previousCharacterData = {};
+        if (this.gameState && this.gameState.players) {
+          Object.keys(this.gameState.players).forEach(playerId => {
+            if (this.gameState.players[playerId] && this.gameState.players[playerId].character) {
+              previousCharacterData[playerId] = this.gameState.players[playerId].character;
+            }
+          });
+        }
+        
         // Update game state including map changes (destroyed blocks)
         this.gameState = data.gameState;
+        
+        // Restore character data if it was lost in the update
+        if (this.gameState.players) {
+          Object.keys(this.gameState.players).forEach(playerId => {
+            if (!this.gameState.players[playerId].character && previousCharacterData[playerId]) {
+              this.gameState.players[playerId].character = previousCharacterData[playerId];
+            }
+          });
+        }
+        
+        // Ensure bombs array is always initialized
+        if (!this.gameState.bombs) {
+          this.gameState.bombs = [];
+        }
+        // Ensure powerUps array is always initialized
+        if (!this.gameState.powerUps) {
+          this.gameState.powerUps = [];
+        }
         // Update cell types if map changed
         if (mapChanged && this.gameState.map) {
           for (let y = 0; y < 15; y++) {
@@ -334,7 +374,7 @@ export class GameEngine {
     this.checkGameOver();
     
     const player = this.gameState.players[this.playerId];
-    if (!player || player.lives <= 0) return;
+    if (!player || player.lives < 1) return;
     
     // Update previous stats tracking
     if (this.previousPlayerStats[this.playerId]) {
@@ -445,7 +485,12 @@ export class GameEngine {
 
   placeBomb() {
     const player = this.gameState.players[this.playerId];
-    if (!player) return;
+    if (!player || player.lives < 1) return;
+
+    // Ensure bombs array exists
+    if (!this.gameState.bombs) {
+      this.gameState.bombs = [];
+    }
 
     const bombsPlaced = this.gameState.bombs.filter(b => b.playerId === this.playerId).length;
     if (bombsPlaced >= (player.maxBombs || 1)) {
@@ -542,16 +587,20 @@ export class GameEngine {
     // Track which cells need entity updates
     const cellsWithEntities = new Set();
 
-    // Clear previous entities (but keep explosions that are animating)
+    // Clear previous entities (but keep explosions that are animating and players)
     Object.keys(this.entityCache).forEach(key => {
       const entity = this.entityCache[key];
       if (entity && entity.parentNode) {
         // Don't remove explosion elements that are still animating
-        if (!entity.classList.contains('explosion')) {
+        // Don't remove player elements - we'll update their positions instead
+        if (!entity.classList.contains('explosion') && !key.startsWith('player-')) {
           entity.remove();
         }
       }
-      delete this.entityCache[key];
+      // Only delete non-player entities from cache
+      if (!key.startsWith('player-')) {
+        delete this.entityCache[key];
+      }
     });
 
     // Render power-ups
@@ -586,51 +635,232 @@ export class GameEngine {
       });
     }
 
-    // Render players
+    // Render players - reuse existing elements to avoid reloading images
     Object.keys(this.gameState.players).forEach((playerId, index) => {
       const player = this.gameState.players[playerId];
-      if (player.lives <= 0) return;
+      if (player.lives < 1) {
+        // Remove dead players
+        const existingPlayer = this.entityCache[`player-${playerId}`];
+        if (existingPlayer && existingPlayer.parentNode) {
+          existingPlayer.remove();
+        }
+        delete this.entityCache[`player-${playerId}`];
+        delete this.playerDirections[playerId];
+        delete this.playerPreviousPositions[playerId];
+        return;
+      }
 
       const x = Math.floor(player.x);
       const y = Math.floor(player.y);
       const cell = this.cellCache[`${x},${y}`];
-      if (cell) {
-        const playerEl = document.createElement('div');
+      if (!cell) return;
+
+      // Determine direction based on movement
+      const prevPos = this.playerPreviousPositions[playerId];
+      let direction = this.playerDirections[playerId] || 'Down';
+      let isMoving = false;
+      
+      if (prevPos) {
+        const dx = x - prevPos.x;
+        const dy = y - prevPos.y;
+        
+        if (dx > 0) {
+          direction = 'Right';
+          isMoving = true;
+        } else if (dx < 0) {
+          direction = 'Left';
+          isMoving = true;
+        } else if (dy > 0) {
+          direction = 'Down';
+          isMoving = true;
+        } else if (dy < 0) {
+          direction = 'Up';
+          isMoving = true;
+        }
+      }
+      
+      // Update previous position
+      this.playerPreviousPositions[playerId] = { x, y };
+      this.playerDirections[playerId] = direction;
+
+      let playerEl = this.entityCache[`player-${playerId}`];
+      const isNewPlayer = !playerEl;
+
+      if (isNewPlayer) {
+        // Create new player element only if it doesn't exist
+        playerEl = document.createElement('div');
         playerEl.className = 'player';
         
-        // Add character image if available
-        if (player.character && player.character.image) {
+        // Add character image if available (only once)
+        if (player.character) {
           const charImg = document.createElement('img');
-          charImg.src = player.character.image;
           charImg.alt = player.character.name || 'Character';
           charImg.className = 'character-sprite';
+          charImg.dataset.playerId = playerId; // Store playerId for easy access
+          
+          // Final fallback if even Down/Idle/1.png fails
+          const basePath = player.character.basePath || player.character.folder;
+          const finalFallbackPath = basePath ? `${basePath}/Down/Idle/1.png` : null;
+          
+          // Set up final error handler (only triggers if fallback also fails)
+          const gameEngine = this;
+          charImg.addEventListener('error', function finalErrorHandler() {
+            // Only act if this is the fallback path that failed
+            if (this.src === finalFallbackPath || (finalFallbackPath && this.src.endsWith('/Down/Idle/1.png'))) {
+              console.error('Even fallback sprite failed:', this.src);
+              this.remove();
+              const playerEl = this.closest('.player');
+              if (playerEl) {
+                playerEl.classList.remove('has-character');
+                // Get player index for generic player class
+                const allPlayers = Object.keys(gameEngine.gameState?.players || {});
+                const idx = allPlayers.indexOf(playerId);
+                if (idx >= 0) {
+                  playerEl.className += ` player-${(idx % 4) + 1}`;
+                }
+              }
+              // Remove this handler to prevent multiple calls
+              this.removeEventListener('error', finalErrorHandler);
+            }
+          });
+          
+          playerEl.classList.add('has-character');
           playerEl.appendChild(charImg);
+          
+          // Set initial sprite (will set src and data-sprite-path with fallback logic)
+          this.updateCharacterSprite(charImg, player.character, direction, isMoving);
         } else {
           // Fallback to generic player class
           playerEl.className += ` player-${(index % 4) + 1}`;
         }
         
-        // Add player name label
+        // Add player name label (only once)
         const nameLabel = document.createElement('div');
         nameLabel.className = 'player-name';
         nameLabel.textContent = player.nickname || `Player ${index + 1}`;
         playerEl.appendChild(nameLabel);
         
-        // Add player lives label
+        // Add player lives label (only once)
         const livesLabel = document.createElement('div');
         livesLabel.className = 'player-lives';
-        livesLabel.textContent = `❤️ ${player.lives}`;
         playerEl.appendChild(livesLabel);
         
-        cell.appendChild(playerEl);
         this.entityCache[`player-${playerId}`] = playerEl;
-        cellsWithEntities.add(`${x},${y}`);
+        cell.appendChild(playerEl);
+      } else {
+        // Update existing player position
+        const oldCell = playerEl.parentNode;
+        if (oldCell !== cell) {
+          oldCell.removeChild(playerEl);
+          cell.appendChild(playerEl);
+        }
+        
+        // Update character sprite if direction changed or movement state changed
+        if (player.character) {
+          const charImg = playerEl.querySelector('.character-sprite');
+          if (charImg) {
+            this.updateCharacterSprite(charImg, player.character, direction, isMoving);
+          }
+        }
+        
+        // Update lives label
+        const livesLabel = playerEl.querySelector('.player-lives');
+        if (livesLabel) {
+          livesLabel.textContent = `❤️ ${player.lives}`;
+        }
       }
+      
+      cellsWithEntities.add(`${x},${y}`);
     });
 
     // Only update cell types when map changes (destroyed blocks)
     // We track this via map reference changes from WebSocket updates
     // Cell types are set during initial render and only need updates when blocks are destroyed
+  }
+
+  updateCharacterSprite(charImg, character, direction, isMoving) {
+    if (!character || !charImg) return;
+    
+    // Determine animation type: Walk when moving, Idle when stationary
+    const animation = isMoving ? 'Walk' : 'Idle';
+    
+    // Get base path
+    const basePath = character.basePath || character.folder;
+    if (!basePath) return;
+    
+    // Get the correct frame number based on direction and animation
+    // Frame numbering pattern:
+    // Down: Idle 1-9, Walk 10-19
+    // Right: Idle 120-129, Walk 130-139
+    // Left: Idle 180-189, Walk 190-199
+    // Up: Idle 60-69, Walk 70-79
+    const frameNumber = this.getSpriteFrameNumber(direction, animation);
+    
+    // Construct sprite path: basePath/Direction/Animation/frameNumber.png
+    const spritePath = `${basePath}/${direction}/${animation}/${frameNumber}.png`;
+    
+    // Store current sprite path in data attribute to avoid unnecessary reloads
+    const currentSpritePath = charImg.dataset.spritePath;
+    if (currentSpritePath === spritePath) {
+      return; // Already showing this sprite
+    }
+    
+    // Set up error handler with fallback to first idle sprite
+    const fallbackPath = `${basePath}/Down/Idle/1.png`;
+    charImg.onerror = () => {
+      // If the requested sprite fails to load, try fallback to first idle sprite
+      if (charImg.src !== fallbackPath) {
+        console.warn(`Sprite not found: ${spritePath}, using fallback: ${fallbackPath}`);
+        charImg.dataset.spritePath = fallbackPath;
+        charImg.src = fallbackPath;
+        // Remove error handler after fallback to prevent infinite loop
+        charImg.onerror = null;
+      } else {
+        // Even fallback failed, remove character sprite
+        console.error(`Fallback sprite also failed: ${fallbackPath}`);
+        charImg.remove();
+        const playerEl = charImg.closest('.player');
+        if (playerEl) {
+          playerEl.classList.remove('has-character');
+          // Add generic player class based on index
+          const playerId = charImg.dataset.playerId;
+          const players = Object.keys(this.gameState.players);
+          const index = players.indexOf(playerId);
+          if (index >= 0) {
+            playerEl.className += ` player-${(index % 4) + 1}`;
+          }
+        }
+      }
+    };
+    
+    // Update the image source and store the path
+    charImg.dataset.spritePath = spritePath;
+    charImg.src = spritePath;
+  }
+
+  getSpriteFrameNumber(direction, animation) {
+    // Frame numbering pattern for each direction and animation
+    const frameMap = {
+      'Down': {
+        'Idle': 1,
+        'Walk': 10
+      },
+      'Right': {
+        'Idle': 120,
+        'Walk': 130
+      },
+      'Left': {
+        'Idle': 180,
+        'Walk': 190
+      },
+      'Up': {
+        'Idle': 60,
+        'Walk': 70
+      }
+    };
+    
+    // Return the first frame of the animation, or default to 1 if not found
+    return frameMap[direction]?.[animation] || 1;
   }
 
   showExplosions(explosions) {

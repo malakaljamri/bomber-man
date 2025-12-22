@@ -15,7 +15,8 @@ const store = new Store({
   chatMessages: [],
   countdownTime: null,
   countdownActive: false,
-  gameStarted: false
+  gameStarted: false,
+  selectedCharacter: null
 });
 
 // Make store globally accessible for game page
@@ -39,6 +40,8 @@ store.setReducer((state, action) => {
     case 'SET_NICKNAME':
       return { ...state, nickname: action.payload };
     
+    case 'SET_SELECTED_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
     
     case 'SET_PLAYER_ID':
       return { ...state, playerId: action.payload };
@@ -75,7 +78,8 @@ store.setReducer((state, action) => {
         chatMessages: [],
         countdownTime: null,
         countdownActive: false,
-        gameStarted: false
+        gameStarted: false,
+        selectedCharacter: null
       };
     
     default:
@@ -196,19 +200,36 @@ ws.on('session-terminated', (data) => {
 });
 
 // Handle nickname submission
-function handleJoin(nickname) {
+function handleJoin(nickname, selectedCharacter) {
   store.dispatch({ type: 'SET_NICKNAME', payload: nickname });
+  store.dispatch({ type: 'SET_SELECTED_CHARACTER', payload: selectedCharacter });
   
   // Connect WebSocket if not connected
   if (!ws.connected) {
     ws.connect().then(() => {
-      ws.send({ type: 'join', nickname: nickname });
+      ws.send({ 
+        type: 'join', 
+        nickname: nickname,
+        character: selectedCharacter ? {
+          name: selectedCharacter.name,
+          folder: selectedCharacter.folder,
+          basePath: selectedCharacter.basePath
+        } : null
+      });
     }).catch(error => {
       console.error('Failed to connect:', error);
       alert('Failed to connect to server. Please make sure the server is running.');
     });
   } else {
-    ws.send({ type: 'join', nickname: nickname });
+    ws.send({ 
+      type: 'join', 
+      nickname: nickname,
+      character: selectedCharacter ? {
+        name: selectedCharacter.name,
+        folder: selectedCharacter.folder,
+        basePath: selectedCharacter.basePath
+      } : null
+    });
   }
   
   // Navigate directly to waiting room
