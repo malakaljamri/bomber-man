@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background-image: url('back.png');
+    background-color: #DAD4C2;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -204,7 +204,7 @@ body {
     flex-direction: column;
     min-height: 100vh;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(45deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     max-width: 1200px;
