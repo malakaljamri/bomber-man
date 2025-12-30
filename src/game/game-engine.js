@@ -99,19 +99,19 @@ export class GameEngine {
         <p style="font-size: 1.5em; margin: 20px 0;">
           <strong>Winner: ${winner.nickname || 'Unknown Player'}</strong>
         </p>
-        <p style="font-size: 1.2em; color: #666; margin-bottom: 30px;">
+        <p style="font-size: 1.2em; color: #333; margin-bottom: 30px;">
           Congratulations! You are the last survivor!
         </p>
         <button onclick="location.reload()" style="
           padding: 15px 30px;
           font-size: 1.2em;
-          background: #667eea;
+          background: #e63a3a;
           color: white;
           border: none;
           border-radius: 5px;
           cursor: pointer;
           transition: background 0.3s;
-        " onmouseover="this.style.background='#5a6fd8'" onmouseout="this.style.background='#667eea'">
+        " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e63a3a'">
           Play Again
         </button>
       </div>

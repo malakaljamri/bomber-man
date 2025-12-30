@@ -13,12 +13,12 @@ export function createNicknamePage(onJoin) {
     if (!gridContainer) return;
     
     if (charactersLoading) {
-      gridContainer.innerHTML = '<p style="color: #666; margin: 20px 0;">Loading characters...</p>';
+      gridContainer.innerHTML = '<p style="color: #333; margin: 20px 0;">Loading characters...</p>';
       return;
     }
     
     if (availableCharacters.length === 0) {
-      gridContainer.innerHTML = '<p style="color: #e74c3c; margin: 20px 0;">No characters available</p>';
+      gridContainer.innerHTML = '<p style="color: #e63a3a; margin: 20px 0;">No characters available</p>';
       return;
     }
     
@@ -103,7 +103,7 @@ export function createNicknamePage(onJoin) {
       createElement('h1', {}, 'Bomberman DOM'),
       createElement('div', { className: 'character-selection-section' },
         createElement('h2', { 
-          style: 'margin-bottom: 20px; font-size: 1.5em; color: #667eea;' 
+          style: 'margin-bottom: 20px; font-size: 1.5em; color: #e63a3a;' 
         }, 'Choose Your Character'),
         createElement('div', { className: 'characters-grid-container' })
       ),
