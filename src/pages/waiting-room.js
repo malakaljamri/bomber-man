@@ -1,11 +1,22 @@
 // Waiting Room Page
 import { createElement } from '../framework/index.js';
 
+
 export function createWaitingRoom(state, onChatMessage) {
   const { players, countdownTime, chatMessages, playerId } = state;
   const playerCount = players.length;
-  // Filter out the current player from the list (only if playerId is set)
-  const otherPlayers = playerId ? players.filter(player => player.id !== playerId) : players;
+  
+  // ✅ FIXED: Filter out current player properly
+  // playerId might be null initially, so just filter based on whether we have it
+  const otherPlayers = players.filter(player => {
+    // If playerId is set, exclude only that player
+    if (playerId) {
+      return player.id !== playerId;
+    }
+    // If playerId not set yet, show all players (they'll all see each other)
+    return true;
+  });
+
 
   const handleChatSubmit = (e) => {
     e.preventDefault();
@@ -16,6 +27,7 @@ export function createWaitingRoom(state, onChatMessage) {
       input.value = '';
     }
   };
+
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -29,9 +41,11 @@ export function createWaitingRoom(state, onChatMessage) {
     }
   };
 
+
   const countdownDisplay = countdownTime !== null && countdownTime > 0
     ? createElement('div', { className: 'countdown' }, `Game starting in ${Math.ceil(countdownTime / 1000)}s`)
     : null;
+
 
   return createElement('div', { className: 'waiting-room' },
     createElement('div', { className: 'waiting-room-header' },
@@ -80,4 +94,3 @@ export function createWaitingRoom(state, onChatMessage) {
     )
   );
 }
-

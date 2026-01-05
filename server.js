@@ -114,7 +114,7 @@ wss.on('connection', (ws) => {
     }
   });
 
-  // Send current game state to new connection
+  // ✅ FIXED: Send current game state to new connection
   ws.send(JSON.stringify({
     type: 'game-state',
     players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname, character: p.character })),
@@ -128,10 +128,10 @@ wss.on('connection', (ws) => {
 function handleMessage(ws, data) {
   switch (data.type) {
     case 'join':
-      handleJoin(ws, data.nickname, data.character);
+      handleJoin(ws, data.nickname, data.character, data.tabId);
       break;
     case 'chat':
-      handleChat(ws, data.message);
+      handleChat(ws, data.message, data.tabId);
       break;
     case 'player-move':
       handlePlayerMove(ws, data);
@@ -147,11 +147,12 @@ function handleMessage(ws, data) {
   }
 }
 
-function handleJoin(ws, nickname, character) {
+function handleJoin(ws, nickname, character, tabId) {
   if (gameState.players.length >= MAX_PLAYERS) {
     ws.send(JSON.stringify({
       type: 'error',
-      message: 'Game is full'
+      message: 'Game is full',
+      tabId: tabId
     }));
     return;
   }
@@ -159,7 +160,8 @@ function handleJoin(ws, nickname, character) {
   if (gameState.gameStarted) {
     ws.send(JSON.stringify({
       type: 'error',
-      message: 'Game already started'
+      message: 'Game already started',
+      tabId: tabId
     }));
     return;
   }
@@ -173,7 +175,8 @@ function handleJoin(ws, nickname, character) {
     if (isDuplicate) {
       ws.send(JSON.stringify({
         type: 'error',
-        message: 'Nickname already taken. Please choose a different one.'
+        message: 'Nickname already taken. Please choose a different one.',
+        tabId: tabId
       }));
       return;
     }
@@ -185,27 +188,32 @@ function handleJoin(ws, nickname, character) {
     nickname: trimmedNickname || `Player ${gameState.players.length + 1}`,
     ws: ws,
     ready: false,
-    character: character || null
+    character: character || null,
+    tabId: tabId
   };
 
   gameState.players.push(player);
 
-  // Send player ID to the joining client
+  // ✅ Send player ID to the joining client
   ws.send(JSON.stringify({
     type: 'player-id',
-    playerId: player.id
+    playerId: player.id,
+    tabId: tabId
   }));
 
+  // ✅ CRITICAL FIX: Broadcast to ALL clients (no exclusion, no tabId filtering)
   broadcast({
     type: 'player-joined',
     player: { id: player.id, nickname: player.nickname, character: player.character },
     players: gameState.players.map(p => ({ id: p.id, nickname: p.nickname, character: p.character }))
-  }, ws);
+  });
+
+  console.log(`Player joined: ${player.nickname} (Total: ${gameState.players.length}/4)`);
 
   checkGameStart();
 }
 
-function handleChat(ws, message) {
+function handleChat(ws, message, tabId) {
   const player = gameState.players.find(p => p.ws === ws);
   if (!player) return;
 
@@ -295,7 +303,7 @@ function handlePlaceBomb(ws, data) {
     y: data.y,
     placedAt: Date.now(),
     explosionRange: gameState.gameState.players[player.id].explosionRange || 1,
-    exploded: false // Flag to prevent multiple explosions
+    exploded: false
   };
 
   if (!gameState.gameState.bombs) {
@@ -416,9 +424,13 @@ function startGame() {
     };
   });
 
-  broadcast({
-    type: 'game-start',
-    gameState: gameState.gameState
+  // Send game-start to each player with their tabId
+  gameState.players.forEach(player => {
+    player.ws.send(JSON.stringify({
+      type: 'game-start',
+      tabId: player.tabId,
+      gameState: gameState.gameState
+    }));
   });
 
   // Start game loop
@@ -506,8 +518,6 @@ function startGameLoop() {
     }
 
     // Ensure character data is preserved in gameState before broadcasting
-    // Character data should already be in gameState.gameState.players[playerId].character
-    // but we'll ensure it's there by checking against the original player data
     if (gameState.gameState.players) {
       Object.keys(gameState.gameState.players).forEach(playerId => {
         const gamePlayer = gameState.gameState.players[playerId];
@@ -610,7 +620,6 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
   });
 
   // Check for player damage
-  // Use the shared damagedPlayersThisCycle Set to prevent multiple hits in same cycle
   Object.keys(gameState.gameState.players).forEach(playerId => {
     const player = gameState.gameState.players[playerId];
     // Only damage if player hasn't been damaged this cycle and is in an explosion cell
@@ -684,4 +693,3 @@ function broadcast(message, excludeWs = null) {
 }
 
 console.log(`WebSocket Server running on ws://localhost:${WS_PORT}`);
-

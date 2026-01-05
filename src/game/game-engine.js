@@ -3,7 +3,7 @@
 export class GameEngine {
   constructor(container, gameState, playerId, ws, selectedCharacter = null) {
     console.log('GameEngine: Constructor called with:', { container, gameState, playerId, ws, selectedCharacter });
-    
+
     // Validate required parameters
     if (!container) {
       throw new Error('GameEngine: Container is required');
@@ -17,7 +17,7 @@ export class GameEngine {
     if (!ws) {
       throw new Error('GameEngine: WebSocket is required');
     }
-    
+
     this.container = container;
     this.gameState = gameState;
     this.playerId = playerId;
@@ -46,16 +46,16 @@ export class GameEngine {
 
   checkGameOver() {
     if (!this.gameState.players) return;
-    
+
     // Count alive players
     const alivePlayers = Object.keys(this.gameState.players).filter(playerId => {
       const player = this.gameState.players[playerId];
       return player && player.lives > 0;
     });
-    
+
     // Remove dead players from the game completely
     this.removeDeadPlayers();
-    
+
     // If only one player is alive, declare winner
     if (alivePlayers.length === 1) {
       const winnerId = alivePlayers[0];
@@ -66,7 +66,7 @@ export class GameEngine {
 
   removeDeadPlayers() {
     if (!this.gameState.players) return;
-    
+
     // Remove players with less than 1 life from the game state
     Object.keys(this.gameState.players).forEach(playerId => {
       const player = this.gameState.players[playerId];
@@ -89,7 +89,7 @@ export class GameEngine {
   showGameOver(winner) {
     // Stop the game
     this.stop();
-    
+
     // Create game over overlay
     const gameOverDiv = document.createElement('div');
     gameOverDiv.className = 'game-over';
@@ -116,10 +116,10 @@ export class GameEngine {
         </button>
       </div>
     `;
-    
+
     // Add to container
     this.container.appendChild(gameOverDiv);
-    
+
     console.log(`Game Over! Winner: ${winner.nickname}`);
   }
 
@@ -143,12 +143,12 @@ export class GameEngine {
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
         return;
       }
-      
+
       // Prevent default for game controls to avoid scrolling
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
-      
+
       const key = normalizeKey(e.key);
       this.keys[key] = true;
       this.handleKeyPress(e);
@@ -160,14 +160,14 @@ export class GameEngine {
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
         return;
       }
-      
+
       const key = normalizeKey(e.key);
       this.keys[key] = false;
     };
 
     window.addEventListener('keydown', handleKeyDown, { passive: false });
     window.addEventListener('keyup', handleKeyUp, { passive: false });
-    
+
     // Also listen on the container for better focus handling
     if (this.container) {
       this.container.addEventListener('keydown', handleKeyDown, { passive: false });
@@ -193,7 +193,7 @@ export class GameEngine {
       if (data.gameState) {
         // Check if map changed (blocks destroyed)
         const mapChanged = JSON.stringify(this.gameState.map) !== JSON.stringify(data.gameState.map);
-        
+
         // Preserve character data from previous gameState before replacing
         const previousCharacterData = {};
         if (this.gameState && this.gameState.players) {
@@ -203,10 +203,10 @@ export class GameEngine {
             }
           });
         }
-        
+
         // Update game state including map changes (destroyed blocks)
         this.gameState = data.gameState;
-        
+
         // Restore character data if it was lost in the update
         if (this.gameState.players) {
           Object.keys(this.gameState.players).forEach(playerId => {
@@ -215,7 +215,7 @@ export class GameEngine {
             }
           });
         }
-        
+
         // Ensure bombs array is always initialized
         if (!this.gameState.bombs) {
           this.gameState.bombs = [];
@@ -299,13 +299,13 @@ export class GameEngine {
     this.ws.on('power-up-collected', (data) => {
       if (data.gameState) {
         this.gameState = data.gameState;
-        
+
         // Validate power-up increments for the local player
         const localPlayer = this.gameState.players[this.playerId];
         if (localPlayer && data.powerUpType) {
           this.validatePowerUpIncrement(localPlayer, data.powerUpType);
         }
-        
+
         this.updateDisplay();
       }
     });
@@ -315,7 +315,7 @@ export class GameEngine {
     console.log('GameEngine: Starting game...');
     try {
       this.render();
-      
+
       // Initialize previous stats for power-up tracking
       if (this.gameState.players && this.gameState.players[this.playerId]) {
         const player = this.gameState.players[this.playerId];
@@ -326,7 +326,7 @@ export class GameEngine {
         };
         console.log('Initialized player stats tracking:', this.previousPlayerStats[this.playerId]);
       }
-      
+
       this.gameLoop();
       console.log('GameEngine: Game started successfully');
     } catch (error) {
@@ -369,13 +369,13 @@ export class GameEngine {
       console.warn('GameEngine: Missing gameState, players, or playerId');
       return;
     }
-    
+
     // Check for game over condition
     this.checkGameOver();
-    
+
     const player = this.gameState.players[this.playerId];
     if (!player || player.lives < 1) return;
-    
+
     // Update previous stats tracking
     if (this.previousPlayerStats[this.playerId]) {
       this.previousPlayerStats[this.playerId] = {
@@ -390,7 +390,7 @@ export class GameEngine {
     const baseMoveSpeed = 150;
     const moveSpeed = baseMoveSpeed / (player.speed || 1); // Time in ms to move one cell
     const now = performance.now();
-    
+
     // Initialize lastMoveTime if not set
     if (!player.lastMoveTime) {
       player.lastMoveTime = 0; // Allow immediate first movement
@@ -418,10 +418,10 @@ export class GameEngine {
       newX = Math.max(0, player.x - 1);
       moved = true;
     } else if (this.keys['d'] || this.keys['arrowright']) {
-      newX = Math.min(14,player.x + 1);
+      newX = Math.min(14, player.x + 1);
       moved = true;
     }
-    
+
     // Debug: log if any movement keys are pressed (remove after testing)
     // if (Object.keys(this.keys).some(k => this.keys[k] && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k))) {
     //   // Keys are being detected
@@ -432,10 +432,10 @@ export class GameEngine {
       player.x = newX;
       player.y = newY;
       player.lastMoveTime = now;
-      
+
       // Update display for responsive movement (throttled internally)
       this.updateDisplay();
-      
+
       // Send movement to server
       this.ws.send({
         type: 'player-move',
@@ -458,7 +458,7 @@ export class GameEngine {
     }
 
     const cell = this.gameState.map[newY][newX];
-    
+
     // Can't move into walls or blocks
     if (cell === 1 || cell === 2) {
       return false;
@@ -466,10 +466,28 @@ export class GameEngine {
 
     // Check for bombs
     if (this.gameState.bombs) {
-      const bombAtPosition = this.gameState.bombs.some(bomb => 
+      const bombAtPosition = this.gameState.bombs.some(bomb =>
         Math.floor(bomb.x) === newX && Math.floor(bomb.y) === newY
       );
       if (bombAtPosition) {
+        return false;
+      }
+    }
+
+    if (this.gameState.players) {
+      const playerAtPosition = Object.keys(this.gameState.players).some(playerId => {
+        if (playerId === this.playerId) {
+          return false;
+        }
+        const otherPlayer = this.gameState.players[playerId];
+        if (!otherPlayer || otherPlayer.lives < 1) {
+          return false;
+        }
+        const otherX = Math.floor(otherPlayer.x);
+        const otherY = Math.floor(otherPlayer.y);
+        return otherX === newX && otherY === newY;
+      });
+      if (playerAtPosition) {
         return false;
       }
     }
@@ -501,7 +519,7 @@ export class GameEngine {
     const gridY = Math.floor(player.y);
 
     // Check if there's already a bomb here
-    const existingBomb = this.gameState.bombs.some(b => 
+    const existingBomb = this.gameState.bombs.some(b =>
       Math.floor(b.x) === gridX && Math.floor(b.y) === gridY
     );
 
@@ -519,9 +537,9 @@ export class GameEngine {
     console.log('GameEngine: Container:', this.container);
     console.log('GameEngine: GameState:', this.gameState);
     console.log('GameEngine: PlayerId:', this.playerId);
-    
+
     this.container.innerHTML = '';
-    
+
     const grid = document.createElement('div');
     grid.className = 'game-grid';
     this.gridElement = grid;
@@ -558,7 +576,7 @@ export class GameEngine {
   updateCellType(cell, x, y) {
     // Remove all type classes
     cell.classList.remove('wall', 'block');
-    
+
     // Add appropriate type class based on map state
     if (this.gameState && this.gameState.map && this.gameState.map[y] && this.gameState.map[y][x] !== undefined) {
       const cellType = this.gameState.map[y][x];
@@ -659,11 +677,11 @@ export class GameEngine {
       const prevPos = this.playerPreviousPositions[playerId];
       let direction = this.playerDirections[playerId] || 'Down';
       let isMoving = false;
-      
+
       if (prevPos) {
         const dx = x - prevPos.x;
         const dy = y - prevPos.y;
-        
+
         if (dx > 0) {
           direction = 'Right';
           isMoving = true;
@@ -678,7 +696,7 @@ export class GameEngine {
           isMoving = true;
         }
       }
-      
+
       // Update previous position
       this.playerPreviousPositions[playerId] = { x, y };
       this.playerDirections[playerId] = direction;
@@ -690,18 +708,18 @@ export class GameEngine {
         // Create new player element only if it doesn't exist
         playerEl = document.createElement('div');
         playerEl.className = 'player';
-        
+
         // Add character image if available (only once)
         if (player.character) {
           const charImg = document.createElement('img');
           charImg.alt = player.character.name || 'Character';
           charImg.className = 'character-sprite';
           charImg.dataset.playerId = playerId; // Store playerId for easy access
-          
+
           // Final fallback if even Down/Idle/1.png fails
           const basePath = player.character.basePath || player.character.folder;
           const finalFallbackPath = basePath ? `${basePath}/Down/Idle/1.png` : null;
-          
+
           // Set up final error handler (only triggers if fallback also fails)
           const gameEngine = this;
           charImg.addEventListener('error', function finalErrorHandler() {
@@ -723,28 +741,28 @@ export class GameEngine {
               this.removeEventListener('error', finalErrorHandler);
             }
           });
-          
+
           playerEl.classList.add('has-character');
           playerEl.appendChild(charImg);
-          
+
           // Set initial sprite (will set src and data-sprite-path with fallback logic)
           this.updateCharacterSprite(charImg, player.character, direction, isMoving);
         } else {
           // Fallback to generic player class
           playerEl.className += ` player-${(index % 4) + 1}`;
         }
-        
+
         // Add player name label (only once)
         const nameLabel = document.createElement('div');
         nameLabel.className = 'player-name';
         nameLabel.textContent = player.nickname || `Player ${index + 1}`;
         playerEl.appendChild(nameLabel);
-        
+
         // Add player lives label (only once)
         const livesLabel = document.createElement('div');
         livesLabel.className = 'player-lives';
         playerEl.appendChild(livesLabel);
-        
+
         this.entityCache[`player-${playerId}`] = playerEl;
         cell.appendChild(playerEl);
       } else {
@@ -754,7 +772,7 @@ export class GameEngine {
           oldCell.removeChild(playerEl);
           cell.appendChild(playerEl);
         }
-        
+
         // Update character sprite if direction changed or movement state changed
         if (player.character) {
           const charImg = playerEl.querySelector('.character-sprite');
@@ -762,14 +780,14 @@ export class GameEngine {
             this.updateCharacterSprite(charImg, player.character, direction, isMoving);
           }
         }
-        
+
         // Update lives label
         const livesLabel = playerEl.querySelector('.player-lives');
         if (livesLabel) {
           livesLabel.textContent = `❤️ ${player.lives}`;
         }
       }
-      
+
       cellsWithEntities.add(`${x},${y}`);
     });
 
@@ -780,14 +798,14 @@ export class GameEngine {
 
   updateCharacterSprite(charImg, character, direction, isMoving) {
     if (!character || !charImg) return;
-    
+
     // Determine animation type: Walk when moving, Idle when stationary
     const animation = isMoving ? 'Walk' : 'Idle';
-    
+
     // Get base path
     const basePath = character.basePath || character.folder;
     if (!basePath) return;
-    
+
     // Get the correct frame number based on direction and animation
     // Frame numbering pattern:
     // Down: Idle 1-9, Walk 10-19
@@ -795,16 +813,16 @@ export class GameEngine {
     // Left: Idle 180-189, Walk 190-199
     // Up: Idle 60-69, Walk 70-79
     const frameNumber = this.getSpriteFrameNumber(direction, animation);
-    
+
     // Construct sprite path: basePath/Direction/Animation/frameNumber.png
     const spritePath = `${basePath}/${direction}/${animation}/${frameNumber}.png`;
-    
+
     // Store current sprite path in data attribute to avoid unnecessary reloads
     const currentSpritePath = charImg.dataset.spritePath;
     if (currentSpritePath === spritePath) {
       return; // Already showing this sprite
     }
-    
+
     // Set up error handler with fallback to first idle sprite
     const fallbackPath = `${basePath}/Down/Idle/1.png`;
     charImg.onerror = () => {
@@ -832,7 +850,7 @@ export class GameEngine {
         }
       }
     };
-    
+
     // Update the image source and store the path
     charImg.dataset.spritePath = spritePath;
     charImg.src = spritePath;
@@ -858,7 +876,7 @@ export class GameEngine {
         'Walk': 70
       }
     };
-    
+
     // Return the first frame of the animation, or default to 1 if not found
     return frameMap[direction]?.[animation] || 1;
   }
@@ -877,7 +895,7 @@ export class GameEngine {
         flame.style.left = '0';
         flame.style.zIndex = '15';
         cell.appendChild(flame);
-        
+
         // Remove flame after animation
         setTimeout(() => {
           if (flame.parentNode) {
@@ -886,7 +904,7 @@ export class GameEngine {
         }, 500);
       }
     });
-    
+
     // Update display to reflect destroyed blocks
     this.updateDisplay();
   }
@@ -907,24 +925,24 @@ export class GameEngine {
   // Validate and ensure power-up increments are exactly +1
   validatePowerUpIncrement(player, powerUpType) {
     if (!player || !this.playerId) return;
-    
+
     const playerId = this.playerId;
     const previousStats = this.previousPlayerStats[playerId] || {
       maxBombs: 1,
       explosionRange: 1,
       speed: 1
     };
-    
+
     const currentBombs = player.maxBombs || 1;
     const currentRange = player.explosionRange || 1;
     const currentSpeed = player.speed || 1;
-    
+
     // Calculate expected values (previous + 1 for bombs and flames)
     const expectedBombs = previousStats.maxBombs + 1;
     const expectedRange = previousStats.explosionRange + 1;
-    
+
     let corrected = false;
-    
+
     // Ensure bomb power-ups increment by exactly +1
     if (powerUpType === 'bombs') {
       if (currentBombs !== expectedBombs) {
@@ -935,7 +953,7 @@ export class GameEngine {
         console.log(`Bomb power-up: Correctly incremented to ${currentBombs}`);
       }
     }
-    
+
     // Ensure flame power-ups increment by exactly +1
     if (powerUpType === 'flames') {
       if (currentRange !== expectedRange) {
@@ -946,19 +964,19 @@ export class GameEngine {
         console.log(`Flame power-up: Correctly incremented to ${currentRange}`);
       }
     }
-    
+
     // Speed can increment by any amount (log for debugging)
     if (powerUpType === 'speed') {
       console.log(`Speed power-up: Current speed ${currentSpeed} (was ${previousStats.speed})`);
     }
-    
+
     // Update previous stats for next validation
     this.previousPlayerStats[playerId] = {
       maxBombs: player.maxBombs || 1,
       explosionRange: player.explosionRange || 1,
       speed: player.speed || 1
     };
-    
+
     return corrected;
   }
 }
