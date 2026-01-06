@@ -39,6 +39,7 @@ export class GameEngine {
     this.previousPlayerStats = {}; // Track previous player stats for increment validation
     this.playerDirections = {}; // Track direction for each player: 'Up', 'Down', 'Left', 'Right'
     this.playerPreviousPositions = {}; // Track previous positions to determine direction
+    this.gameOverShown = false; // Track if game over screen has been shown
 
     this.setupControls();
     this.setupWebSocket();
@@ -55,6 +56,12 @@ export class GameEngine {
 
     // Remove dead players from the game completely
     this.removeDeadPlayers();
+
+    // If all players died simultaneously, show draw message
+    if (alivePlayers.length < 1) {
+      this.showGameOverDraw();
+      return;
+    }
 
     // If only one player is alive, declare winner
     if (alivePlayers.length === 1) {
@@ -87,6 +94,12 @@ export class GameEngine {
   }
 
   showGameOver(winner) {
+    // Prevent duplicate game over screens
+    if (this.gameOverShown) {
+      return;
+    }
+    this.gameOverShown = true;
+
     // Stop the game
     this.stop();
 
@@ -121,6 +134,49 @@ export class GameEngine {
     this.container.appendChild(gameOverDiv);
 
     console.log(`Game Over! Winner: ${winner.nickname}`);
+  }
+
+  showGameOverDraw() {
+    // Prevent duplicate game over screens
+    if (this.gameOverShown) {
+      return;
+    }
+    this.gameOverShown = true;
+
+    // Stop the game
+    this.stop();
+
+    // Create game over overlay for draw
+    const gameOverDiv = document.createElement('div');
+    gameOverDiv.className = 'game-over';
+    gameOverDiv.innerHTML = `
+      <div class="game-over-content">
+        <h2>💥 Game Over! 💥</h2>
+        <p style="font-size: 1.5em; margin: 20px 0;">
+          <strong>Draw - All Players Eliminated!</strong>
+        </p>
+        <p style="font-size: 1.2em; color: #333; margin-bottom: 30px;">
+          All remaining players were eliminated simultaneously. It's a tie!
+        </p>
+        <button onclick="location.reload()" style="
+          padding: 15px 30px;
+          font-size: 1.2em;
+          background: #e63a3a;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background 0.3s;
+        " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e63a3a'">
+          Play Again
+        </button>
+      </div>
+    `;
+
+    // Add to container
+    this.container.appendChild(gameOverDiv);
+
+    console.log('Game Over! Draw - All players eliminated simultaneously');
   }
 
   setupControls() {
@@ -307,6 +363,19 @@ export class GameEngine {
         }
 
         this.updateDisplay();
+      }
+    });
+
+    this.ws.on('game-over-draw', (data) => {
+      console.log('Game Over Draw received from server:', data.message);
+      this.showGameOverDraw();
+    });
+
+    this.ws.on('game-over-winner', (data) => {
+      console.log('Game Over Winner received from server:', data.winner);
+      if (data.winner && this.gameState.players[data.winnerId]) {
+        const winner = this.gameState.players[data.winnerId];
+        this.showGameOver(winner);
       }
     });
   }

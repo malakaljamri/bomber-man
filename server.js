@@ -402,10 +402,10 @@ function startGame() {
 
   // Initialize players in corners
   const corners = [
-    { x: 1, y: 1 },
-    { x: GRID_SIZE - 2, y: 1 },
-    { x: 1, y: GRID_SIZE - 2 },
-    { x: GRID_SIZE - 2, y: GRID_SIZE - 2 }
+    { x: 0, y: 0 },
+    { x: GRID_SIZE - 1, y: 0 },
+    { x: 0, y: GRID_SIZE - 1 },
+    { x: GRID_SIZE - 1, y: GRID_SIZE - 1 }
   ];
 
   gameState.players.forEach((player, index) => {
@@ -646,6 +646,68 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
     explosions: explosions,
     gameState: gameState.gameState
   });
+
+  // Check if all players are dead after explosion
+  checkGameOver();
+}
+
+function checkGameOver() {
+  if (!gameState.gameStarted || !gameState.gameState || !gameState.gameState.players) {
+    return;
+  }
+
+  // Count alive players
+  const alivePlayers = Object.keys(gameState.gameState.players).filter(playerId => {
+    const player = gameState.gameState.players[playerId];
+    return player && player.lives > 0;
+  });
+
+  // If all players are dead, broadcast game over draw
+  if (alivePlayers.length === 0) {
+    console.log('Game Over! All players eliminated simultaneously - Draw');
+    // Stop the game loop immediately
+    if (gameLoopInterval) {
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+    }
+    // Broadcast draw event
+    broadcast({
+      type: 'game-over-draw',
+      message: 'All players were eliminated simultaneously. It\'s a draw!'
+    });
+    // Reset game state after a delay to allow clients to show the message
+    setTimeout(() => {
+      gameState.gameStarted = false;
+      gameState.gameState = null;
+    }, 5000); // 5 second delay before resetting
+    return;
+  }
+
+  // If only one player is alive, broadcast winner
+  if (alivePlayers.length === 1) {
+    const winnerId = alivePlayers[0];
+    const winner = gameState.gameState.players[winnerId];
+    console.log(`Game Over! Winner: ${winner.nickname || winnerId}`);
+    // Stop the game loop immediately
+    if (gameLoopInterval) {
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+    }
+    // Broadcast winner event
+    broadcast({
+      type: 'game-over-winner',
+      winnerId: winnerId,
+      winner: {
+        id: winnerId,
+        nickname: winner.nickname || 'Unknown Player'
+      }
+    });
+    // Reset game state after a delay to allow clients to show the message
+    setTimeout(() => {
+      gameState.gameStarted = false;
+      gameState.gameState = null;
+    }, 5000); // 5 second delay before resetting
+  }
 }
 
 function terminateGameSession() {
