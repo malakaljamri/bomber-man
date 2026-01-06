@@ -51,6 +51,42 @@ body {
     font-size: 2.5em;
 }
 
+.nickname-input {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.nickname-input:focus {
+    border-color: #667eea;
+}
+
+.join-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.join-button:hover {
+    background: #5568d3;
+}
+
+.join-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
 /* Character Selection Page */
 .character-selection-page {
     display: flex;
@@ -162,42 +198,6 @@ body {
     cursor: not-allowed;
 }
 
-.nickname-input {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
-    border: 2px solid #ddd;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    outline: none;
-    transition: border-color 0.3s;
-}
-
-.nickname-input:focus {
-    border-color: #667eea;
-}
-
-.join-button {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.join-button:hover {
-    background: #5568d3;
-}
-
-.join-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
 /* Waiting Room */
 .waiting-room {
     display: flex;
@@ -225,7 +225,8 @@ body {
 
 .player-counter {
     font-size: 1.5em;
-    color: #666;
+    color: #fff;
+    opacity: 0.9;
     margin-bottom: 20px;
 }
 
@@ -234,6 +235,7 @@ body {
     color: #667eea;
     font-weight: bold;
     margin: 20px 0;
+    text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
 }
 
 .waiting-room-content {
@@ -242,77 +244,157 @@ body {
     flex: 1;
 }
 
+/* Updated Waiting Room Chat - Matches Game Chat */
 .chat-section {
     flex: 1;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+    border-radius: 8px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    border: 2px solid #ddd;
-    border-radius: 5px;
-    padding: 20px;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.chat-section h2 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #667eea;
 }
 
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    max-height: 400px;
     margin-bottom: 15px;
     padding: 10px;
-    background: #f5f5f5;
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
-    min-height: 300px;
-    max-height: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
 }
 
 .chat-message {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     padding: 8px;
-    background: white;
-    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    word-wrap: break-word;
+    border-left: 2px solid #667eea;
 }
 
 .chat-message .nickname {
-    font-weight: bold;
     color: #667eea;
+    font-weight: bold;
+    margin-right: 5px;
 }
 
 .chat-input-container {
     display: flex;
-    gap: 10px;
+    gap: 5px;
 }
 
 .chat-input {
     flex: 1;
-    padding: 10px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
     outline: none;
+    font-family: 'Lucida Console', monospace;
+}
+
+.chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-input:focus {
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
 }
 
 .chat-send {
-    padding: 10px 20px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 3px;
     background: #667eea;
     color: white;
-    border: none;
-    border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    font-family: 'Lucida Console', monospace;
+    font-weight: bold;
 }
 
+.chat-send:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}
+
+.chat-send:active {
+    transform: translateY(0);
+}
+
+/* Updated Players List */
 .players-list {
     width: 250px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
-    padding: 20px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    color: white;
 }
 
 .players-list h2 {
+    font-size: 1.2em;
+    font-weight: bold;
     margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     color: #667eea;
 }
 
 .player-item {
     padding: 10px;
-    margin-bottom: 10px;
-    background: #f5f5f5;
-    border-radius: 5px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.player-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #667eea;
+    transform: translateX(2px);
+}
+
+.player-item .character-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9em;
+    margin-top: 3px;
+    font-style: italic;
 }
 
 /* Game View */
@@ -846,5 +928,3 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
 }
-
-
