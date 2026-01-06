@@ -49,11 +49,11 @@ export function createWaitingRoom(state, onChatMessage) {
 
   return createElement('div', { className: 'waiting-room' },
     createElement('div', { className: 'waiting-room-header' },
-      createElement('img', {
-        src: '../bomberman_icon.jpg',
-        alt: 'Bomberman Icon',
-        style: 'width: 888px; height: 222px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);'
-      }),
+      // createElement('img', {
+      //   src: '../bomberman_icon.jpg',
+      //   alt: 'Bomberman Icon',
+      //   style: 'width: 888px; height: 222px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);'
+      // }),
       createElement('h1', {}, 'Waiting Room'),
       createElement('div', { className: 'player-counter' },
         `Players: ${playerCount}/4`

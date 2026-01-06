@@ -100,7 +100,7 @@ export function createNicknamePage(onJoin) {
   
   return createElement('div', { className: 'nickname-page' },
     createElement('div', { className: 'nickname-container' },
-      createElement('h1', {}, 'Bomberman DOM'),
+      createElement('h1', {}, 'Bomberman Game'),
       createElement('div', { className: 'character-selection-section' },
         createElement('h2', { 
           style: 'margin-bottom: 20px; font-size: 1.5em; color: #e63a3a;' 
