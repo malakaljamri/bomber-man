@@ -446,13 +446,13 @@ export class GameEngine {
     if (!player || player.lives < 1) return;
 
     // Update previous stats tracking
-    if (this.previousPlayerStats[this.playerId]) {
-      this.previousPlayerStats[this.playerId] = {
-        maxBombs: player.maxBombs || 1,
-        explosionRange: player.explosionRange || 1,
-        speed: player.speed || 1
-      };
-    }
+    // if (this.previousPlayerStats[this.playerId]) {
+    //   this.previousPlayerStats[this.playerId] = {
+    //     maxBombs: player.maxBombs || 1,
+    //     explosionRange: player.explosionRange || 1,
+    //     speed: player.speed || 1
+    //   };
+    // }
 
     // Grid-based movement - move one cell at a time
     // Base speed: 150ms per cell, faster with speed power-up
