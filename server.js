@@ -294,6 +294,29 @@ function handlePlaceBomb(ws, data) {
   const player = gameState.players.find(p => p.ws === ws);
   if (!player) return;
 
+  // Validate player exists in game state
+  const gamePlayer = gameState.gameState.players[player.id];
+  if (!gamePlayer) return;
+
+  // Ensure bombs array exists
+  if (!gameState.gameState.bombs) {
+    gameState.gameState.bombs = [];
+  }
+
+  // Check max bombs limit
+  const activeBombs = gameState.gameState.bombs.filter(b => b.playerId === player.id && !b.exploded);
+  if (activeBombs.length >= (gamePlayer.maxBombs || 1)) {
+    return;
+  }
+
+  // Check if bomb already exists at location (prevent stacking)
+  const existingBomb = gameState.gameState.bombs.find(b => 
+    Math.floor(b.x) === Math.floor(data.x) && 
+    Math.floor(b.y) === Math.floor(data.y) &&
+    !b.exploded
+  );
+  if (existingBomb) return;
+
   // Add bomb to game state
   const bombId = `bomb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const bomb = {
@@ -302,13 +325,10 @@ function handlePlaceBomb(ws, data) {
     x: data.x,
     y: data.y,
     placedAt: Date.now(),
-    explosionRange: gameState.gameState.players[player.id].explosionRange || 1,
+    explosionRange: gamePlayer.explosionRange || 1,
     exploded: false
   };
 
-  if (!gameState.gameState.bombs) {
-    gameState.gameState.bombs = [];
-  }
   gameState.gameState.bombs.push(bomb);
 
   // Broadcast bomb placement

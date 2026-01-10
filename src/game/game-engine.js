@@ -40,6 +40,8 @@ export class GameEngine {
     this.playerDirections = {}; // Track direction for each player: 'Up', 'Down', 'Left', 'Right'
     this.playerPreviousPositions = {}; // Track previous positions to determine direction
     this.gameOverShown = false; // Track if game over screen has been shown
+    this.lastBombLocation = null; // Track last bomb placement to prevent stacking
+    this.lastBombTime = 0;
 
     this.setupControls();
     this.setupWebSocket();
@@ -594,11 +596,22 @@ export class GameEngine {
 
     if (existingBomb) return;
 
+    // Prevent spamming the same location (client-side debounce)
+    if (this.lastBombLocation && 
+        this.lastBombLocation.x === gridX && 
+        this.lastBombLocation.y === gridY &&
+        Date.now() - this.lastBombTime < 1000) {
+      return;
+    }
+
     this.ws.send({
       type: 'place-bomb',
       x: gridX,
       y: gridY
     });
+
+    this.lastBombLocation = { x: gridX, y: gridY };
+    this.lastBombTime = Date.now();
   }
 
   render() {
@@ -1049,4 +1062,3 @@ export class GameEngine {
     return corrected;
   }
 }
-
