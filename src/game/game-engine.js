@@ -103,9 +103,20 @@ export class GameEngine {
     // Stop the game
     this.stop();
 
+    // Check if current player is the winner
+    const isWinner = this.playerId === winner.id;
+
     // Create game over overlay
     const gameOverDiv = document.createElement('div');
     gameOverDiv.className = 'game-over';
+    
+    let message;
+    if (isWinner) {
+      message = 'Congratulations! You are the last survivor!';
+    } else {
+      message = `Better luck next time! ${winner.nickname || 'Unknown Player'} wins!`;
+    }
+    
     gameOverDiv.innerHTML = `
       <div class="game-over-content">
         <h2>🎉 Game Over! 🎉</h2>
@@ -113,7 +124,7 @@ export class GameEngine {
           <strong>Winner: ${winner.nickname || 'Unknown Player'}</strong>
         </p>
         <p style="font-size: 1.2em; color: #333; margin-bottom: 30px;">
-          Congratulations! You are the last survivor!
+          ${message}
         </p>
         <button onclick="location.reload()" style="
           padding: 15px 30px;
