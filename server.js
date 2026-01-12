@@ -75,6 +75,10 @@ let gameLoopInterval = null;
 let waitingTimer = null;
 let countdownTimer = null;
 
+// Store powerup timers for each player
+// Structure: { playerId: { powerUpType: [{ timerId, previousValue, collectedAt }] } }
+const powerUpTimers = {};
+
 const MAX_PLAYERS = 4;
 const WAIT_TIME = 20000; // 20 seconds
 const COUNTDOWN_TIME = 10000; // 10 seconds
@@ -97,6 +101,8 @@ wss.on('connection', (ws) => {
     const playerIndex = gameState.players.findIndex(p => p.ws === ws);
     if (playerIndex !== -1) {
       const player = gameState.players[playerIndex];
+      // Clear powerup timers for this player
+      clearPowerUpTimers(player.id);
       gameState.players.splice(playerIndex, 1);
       broadcast({
         type: 'player-left',
@@ -262,17 +268,49 @@ function checkPowerUpCollection(playerId, x, y) {
     const player = gameState.gameState.players[playerId];
 
     if (player) {
+      // Store previous values before applying powerup
+      let previousValue;
+      let newValue;
+      
       switch (powerUp.type) {
         case 'bombs':
-          player.maxBombs = (player.maxBombs || 1) + 1;
+          previousValue = player.maxBombs || 1;
+          newValue = previousValue + 1;
+          player.maxBombs = newValue;
           break;
         case 'flames':
-          player.explosionRange = (player.explosionRange || 1) + 1;
+          previousValue = player.explosionRange || 1;
+          newValue = previousValue + 1;
+          player.explosionRange = newValue;
           break;
         case 'speed':
-          player.speed = (player.speed || 1) + 0.5;
+          previousValue = player.speed || 1;
+          newValue = previousValue + 0.5;
+          player.speed = newValue;
           break;
       }
+
+      // Initialize powerup timers structure for this player if needed
+      if (!powerUpTimers[playerId]) {
+        powerUpTimers[playerId] = {};
+      }
+      if (!powerUpTimers[playerId][powerUp.type]) {
+        powerUpTimers[playerId][powerUp.type] = [];
+      }
+
+      // Store timer info
+      const timerInfo = {
+        previousValue: previousValue,
+        collectedAt: Date.now()
+      };
+
+      // Set 15-second timeout to revert powerup
+      const timerId = setTimeout(() => {
+        revertPowerUp(playerId, powerUp.type, timerInfo);
+      }, 15000); // 15 seconds
+
+      timerInfo.timerId = timerId;
+      powerUpTimers[playerId][powerUp.type].push(timerInfo);
 
       // Remove power-up
       gameState.gameState.powerUps.splice(powerUpIndex, 1);
@@ -284,8 +322,75 @@ function checkPowerUpCollection(playerId, x, y) {
         powerUpType: powerUp.type,
         gameState: gameState.gameState
       });
+
+      console.log(`Power-up collected: Player ${playerId} got ${powerUp.type} (will expire in 15s)`);
     }
   }
+}
+
+function revertPowerUp(playerId, powerUpType, timerInfo) {
+  if (!gameState.gameStarted || !gameState.gameState) return;
+  
+  const player = gameState.gameState.players[playerId];
+  if (!player) return;
+
+  // Remove this timer from the list
+  if (powerUpTimers[playerId] && powerUpTimers[playerId][powerUpType]) {
+    const timerIndex = powerUpTimers[playerId][powerUpType].findIndex(
+      t => t.timerId === timerInfo.timerId
+    );
+    if (timerIndex !== -1) {
+      powerUpTimers[playerId][powerUpType].splice(timerIndex, 1);
+    }
+  }
+
+  // Revert the stat by subtracting the increment this powerup provided
+  // Simply subtract the increment and ensure we don't go below base value
+  switch (powerUpType) {
+    case 'bombs':
+      player.maxBombs = Math.max(1, (player.maxBombs || 1) - 1);
+      break;
+    case 'flames':
+      player.explosionRange = Math.max(1, (player.explosionRange || 1) - 1);
+      break;
+    case 'speed':
+      player.speed = Math.max(1, (player.speed || 1) - 0.5);
+      break;
+  }
+
+  const currentValue = powerUpType === 'bombs' ? player.maxBombs : 
+                       powerUpType === 'flames' ? player.explosionRange : 
+                       player.speed;
+  console.log(`Power-up expired: Player ${playerId} lost ${powerUpType} (current: ${currentValue})`);
+
+  // Broadcast the update
+  broadcast({
+    type: 'power-up-expired',
+    playerId: playerId,
+    powerUpType: powerUpType,
+    gameState: gameState.gameState
+  });
+}
+
+function clearPowerUpTimers(playerId) {
+  if (powerUpTimers[playerId]) {
+    // Clear all timers for this player
+    Object.keys(powerUpTimers[playerId]).forEach(powerUpType => {
+      powerUpTimers[playerId][powerUpType].forEach(timerInfo => {
+        if (timerInfo.timerId) {
+          clearTimeout(timerInfo.timerId);
+        }
+      });
+    });
+    delete powerUpTimers[playerId];
+    console.log(`Cleared power-up timers for player ${playerId}`);
+  }
+}
+
+function clearAllPowerUpTimers() {
+  Object.keys(powerUpTimers).forEach(playerId => {
+    clearPowerUpTimers(playerId);
+  });
 }
 
 function handlePlaceBomb(ws, data) {
@@ -384,6 +489,9 @@ function startCountdown() {
 
 function startGame() {
   if (gameState.gameStarted) return;
+
+  // Clear all powerup timers from previous game
+  clearAllPowerUpTimers();
 
   gameState.gameStarted = true;
   gameState.countdownActive = false;
@@ -630,6 +738,8 @@ function explodeBomb(bomb, damagedPlayersThisCycle) {
         damagedPlayersThisCycle.add(playerId); // Mark as damaged this cycle
         player.lives--;
         if (player.lives === 0) {
+          // Player eliminated - clear their powerup timers
+          clearPowerUpTimers(playerId);
           // Player eliminated
           broadcast({
             type: 'player-eliminated',
@@ -665,6 +775,8 @@ function checkGameOver() {
   // If all players are dead, broadcast game over draw
   if (alivePlayers.length === 0) {
     console.log('Game Over! All players eliminated simultaneously - Draw');
+    // Clear all powerup timers
+    clearAllPowerUpTimers();
     // Stop the game loop immediately
     if (gameLoopInterval) {
       clearInterval(gameLoopInterval);
@@ -688,6 +800,8 @@ function checkGameOver() {
     const winnerId = alivePlayers[0];
     const winner = gameState.gameState.players[winnerId];
     console.log(`Game Over! Winner: ${winner.nickname || winnerId}`);
+    // Clear all powerup timers
+    clearAllPowerUpTimers();
     // Stop the game loop immediately
     if (gameLoopInterval) {
       clearInterval(gameLoopInterval);
@@ -712,6 +826,9 @@ function checkGameOver() {
 
 function terminateGameSession() {
   console.log('Terminating game session - no players remaining');
+  
+  // Clear all powerup timers
+  clearAllPowerUpTimers();
   
   // Clear game loop if running
   if (gameLoopInterval) {
