@@ -2,9 +2,27 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const PORT = 3000;
 const WS_PORT = 3001;
+
+// Function to detect local IPv4 address
+function getLocalIPv4() {
+  const networkInterfaces = os.networkInterfaces();
+  
+  for (const [name, interfaces] of Object.entries(networkInterfaces)) {
+    for (const iface of interfaces) {
+      // Skip loopback and non-IPv4 interfaces
+      if (!iface.internal && iface.family === 'IPv4') {
+        return iface.address;
+      }
+    }
+  }
+  
+  // Fallback to localhost if no external IP found
+  return 'localhost';
+}
 
 // HTTP server for serving static files
 const server = http.createServer((req, res) => {
@@ -54,12 +72,14 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`HTTP Server running on http://localhost:${PORT}`);
+const localIP = getLocalIPv4();
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`HTTP Server running at http://${localIP}:${PORT}`);
 });
 
 // WebSocket server for game
-const wss = new WebSocket.Server({ port: WS_PORT });
+const wss = new WebSocket.Server({ port: WS_PORT, host: '0.0.0.0' });
 
 const gameState = {
   players: [],
@@ -900,4 +920,4 @@ function broadcast(message, excludeWs = null) {
   });
 }
 
-console.log(`WebSocket Server running on ws://localhost:${WS_PORT}`);
+console.log(`WebSocket Server running at ws://${localIP}:${WS_PORT}`);
