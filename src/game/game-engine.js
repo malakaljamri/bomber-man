@@ -94,55 +94,59 @@ export class GameEngine {
   }
 
   showGameOver(winner) {
-    // Prevent duplicate game over screens
     if (this.gameOverShown) {
       return;
     }
     this.gameOverShown = true;
-
-    // Stop the game
-    this.stop();
-
-    // Check if current player is the winner
+    
     const isWinner = this.playerId === winner.id;
-
-    // Create game over overlay
+    
+    // Create and show game over overlay
     const gameOverDiv = document.createElement('div');
     gameOverDiv.className = 'game-over';
-    
-    let message;
-    if (isWinner) {
-      message = 'Congratulations! You are the last survivor!';
-    } else {
-      message = `Better luck next time! ${winner.nickname || 'Unknown Player'} wins!`;
-    }
+    gameOverDiv.style.position = 'fixed';
+    gameOverDiv.style.top = '0';
+    gameOverDiv.style.left = '0';
+    gameOverDiv.style.width = '100%';
+    gameOverDiv.style.height = '100%';
+    gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    gameOverDiv.style.display = 'flex';
+    gameOverDiv.style.justifyContent = 'center';
+    gameOverDiv.style.alignItems = 'center';
+    gameOverDiv.style.zIndex = '1000';
+    gameOverDiv.style.color = 'white';
+    gameOverDiv.style.textAlign = 'center';
     
     gameOverDiv.innerHTML = `
-      <div class="game-over-content">
-        <h2>🎉 Game Over! 🎉</h2>
-        <p style="font-size: 1.5em; margin: 20px 0;">
-          <strong>Winner: ${winner.nickname || 'Unknown Player'}</strong>
+      <div>
+        <h1 style="font-size: 3em; margin-bottom: 20px;">🎉 Game Over! 🎉</h1>
+        <p style="font-size: 2em; margin: 20px 0; font-weight: bold;">
+          ${isWinner ? 'You Won!' : 'Better luck next time!'}
         </p>
-        <p style="font-size: 1.2em; color: #333; margin-bottom: 30px;">
-          ${message}
+        <p style="font-size: 1.5em; margin-bottom: 30px; color: #eee;">
+          ${isWinner ? 'Congratulations! You are the last survivor!' : `Winner: ${winner.nickname || 'Unknown Player'}`}
         </p>
-        <button onclick="location.reload()" style="
+        <button onclick="window.location.reload()" style="
           padding: 15px 30px;
           font-size: 1.2em;
-          background: #e63a3a;
+          background: #4CAF50;
           color: white;
           border: none;
           border-radius: 5px;
           cursor: pointer;
           transition: background 0.3s;
-        " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e63a3a'">
+        " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
           Play Again
         </button>
       </div>
     `;
-
-    // Add to container
-    this.container.appendChild(gameOverDiv);
+    
+    document.body.appendChild(gameOverDiv);
+    
+    // Stop the game after a short delay to ensure UI is shown
+    setTimeout(() => {
+      this.stop();
+    }, 100);
 
     console.log(`Game Over! Winner: ${winner.nickname}`);
   }
@@ -153,39 +157,53 @@ export class GameEngine {
       return;
     }
     this.gameOverShown = true;
-
-    // Stop the game
-    this.stop();
-
-    // Create game over overlay for draw
+    
+    // Create and show game over overlay for draw
     const gameOverDiv = document.createElement('div');
     gameOverDiv.className = 'game-over';
+    gameOverDiv.style.position = 'fixed';
+    gameOverDiv.style.top = '0';
+    gameOverDiv.style.left = '0';
+    gameOverDiv.style.width = '100%';
+    gameOverDiv.style.height = '100%';
+    gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    gameOverDiv.style.display = 'flex';
+    gameOverDiv.style.justifyContent = 'center';
+    gameOverDiv.style.alignItems = 'center';
+    gameOverDiv.style.zIndex = '1000';
+    gameOverDiv.style.color = 'white';
+    gameOverDiv.style.textAlign = 'center';
+    
     gameOverDiv.innerHTML = `
-      <div class="game-over-content">
-        <h2>💥 Game Over! 💥</h2>
-        <p style="font-size: 1.5em; margin: 20px 0;">
-          <strong>Draw - All Players Eliminated!</strong>
+      <div>
+        <h1 style="font-size: 3em; margin-bottom: 20px;">🏁 Game Over! 🏁</h1>
+        <p style="font-size: 2em; margin: 20px 0; font-weight: bold;">
+          It's a draw!
         </p>
-        <p style="font-size: 1.2em; color: #333; margin-bottom: 30px;">
-          All remaining players were eliminated simultaneously. It's a tie!
+        <p style="font-size: 1.5em; margin-bottom: 30px; color: #eee;">
+          All remaining players were eliminated simultaneously.
         </p>
-        <button onclick="location.reload()" style="
+        <button onclick="window.location.reload()" style="
           padding: 15px 30px;
           font-size: 1.2em;
-          background: #e63a3a;
+          background: #4CAF50;
           color: white;
           border: none;
           border-radius: 5px;
           cursor: pointer;
           transition: background 0.3s;
-        " onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e63a3a'">
+        " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
           Play Again
         </button>
       </div>
     `;
-
-    // Add to container
-    this.container.appendChild(gameOverDiv);
+    
+    document.body.appendChild(gameOverDiv);
+    
+    // Stop the game after a short delay to ensure UI is shown
+    setTimeout(() => {
+      this.stop();
+    }, 100);
 
     console.log('Game Over! Draw - All players eliminated simultaneously');
   }
@@ -415,10 +433,63 @@ export class GameEngine {
   }
 
   stop() {
+    // Stop the game loop
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+    
+    // Clear any active timeouts
+    if (this.gameState?.bombs) {
+      this.gameState.bombs.forEach(bomb => {
+        if (bomb.timeoutId) clearTimeout(bomb.timeoutId);
+      });
+    }
+    
+    // Disable controls
+    this.keys = {};
+    
+    // Disconnect from WebSocket
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        // Send leave message to server
+        this.ws.send(JSON.stringify({
+          type: 'player-leave',
+          playerId: this.playerId,
+          timestamp: Date.now()
+        }));
+        
+        // Close WebSocket after a short delay to ensure message is sent
+        setTimeout(() => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.close();
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error during WebSocket cleanup:', error);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.close();
+        }
+      }
+    }
+    
+    // Disable all controls
+    if (this.container) {
+      this.container.style.pointerEvents = 'none';
+      this.container.tabIndex = -1;
+      this.container.blur();
+    }
+    
+    // Prevent keyboard events
+    const preventDefault = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    
+    document.addEventListener('keydown', preventDefault, true);
+    document.addEventListener('keyup', preventDefault, true);
+    document.addEventListener('keypress', preventDefault, true);
   }
 
   gameLoop() {
