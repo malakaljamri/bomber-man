@@ -399,6 +399,36 @@ function handlePlaceBomb(ws, data) {
   const player = gameState.players.find(p => p.ws === ws);
   if (!player) return;
 
+  const gamePlayer = gameState.gameState.players[player.id];
+  if (!gamePlayer || gamePlayer.lives < 1) return;
+
+  // Ensure bombs array exists
+  if (!gameState.gameState.bombs) {
+    gameState.gameState.bombs = [];
+  }
+
+  // Check how many bombs this player has already placed
+  const bombsPlaced = gameState.gameState.bombs.filter(b => 
+    b.playerId === player.id && !b.exploded
+  ).length;
+
+  // Validate maxBombs limit
+  const maxBombs = gamePlayer.maxBombs || 1;
+  if (bombsPlaced >= maxBombs) {
+    console.log(`Player ${player.id} tried to place bomb but already has ${bombsPlaced}/${maxBombs} bombs`);
+    return; // Can't place more bombs
+  }
+
+  // Check if there's already a bomb at this location
+  const existingBomb = gameState.gameState.bombs.some(b =>
+    Math.floor(b.x) === data.x && Math.floor(b.y) === data.y && !b.exploded
+  );
+
+  if (existingBomb) {
+    console.log(`Player ${player.id} tried to place bomb at (${data.x}, ${data.y}) but bomb already exists there`);
+    return; // Can't place bomb where one already exists
+  }
+
   // Add bomb to game state
   const bombId = `bomb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const bomb = {
@@ -407,14 +437,13 @@ function handlePlaceBomb(ws, data) {
     x: data.x,
     y: data.y,
     placedAt: Date.now(),
-    explosionRange: gameState.gameState.players[player.id].explosionRange || 1,
+    explosionRange: gamePlayer.explosionRange || 1,
     exploded: false
   };
 
-  if (!gameState.gameState.bombs) {
-    gameState.gameState.bombs = [];
-  }
   gameState.gameState.bombs.push(bomb);
+
+  console.log(`Player ${player.id} placed bomb at (${data.x}, ${data.y}) - now has ${bombsPlaced + 1}/${maxBombs} bombs`);
 
   // Broadcast bomb placement
   broadcast({
