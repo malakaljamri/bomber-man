@@ -100,6 +100,7 @@ export class GameEngine {
     this.gameOverShown = true;
     
     const isWinner = this.playerId === winner.id;
+    let redirectTimer = 10; // 10 seconds countdown
     
     // Create and show game over overlay
     const gameOverDiv = document.createElement('div');
@@ -126,27 +127,94 @@ export class GameEngine {
         <p style="font-size: 1.5em; margin-bottom: 30px; color: #eee;">
           ${isWinner ? 'Congratulations! You are the last survivor!' : `Winner: ${winner.nickname || 'Unknown Player'}`}
         </p>
-        <button onclick="window.location.reload()" style="
-          padding: 15px 30px;
-          font-size: 1.2em;
-          background: #4CAF50;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: background 0.3s;
-        " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
-          Play Again
-        </button>
+        <p id="redirectTimer" style="font-size: 1.2em; margin-bottom: 15px;">
+          Auto-redirecting in 10 seconds...
+        </p>
+        <div>
+          <button id="playAgainBtn" style="
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 0 10px;
+          " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
+            Play Again
+          </button>
+          <button id="exitGameBtn" style="
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 0 10px;
+          " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
+            Exit Game
+          </button>
+        </div>
       </div>
     `;
     
     document.body.appendChild(gameOverDiv);
     
+    // Function to handle leaving the game
+    const leaveGame = () => {
+      // Send leave game message to server
+      if (this.ws && this.ws.connected) {
+        this.ws.send({
+          type: 'leaveGame',
+          playerId: this.playerId
+        });
+      }
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    };
+    
+    // Add event listeners for buttons
+    document.getElementById('playAgainBtn').addEventListener('click', () => {
+      clearInterval(timerInterval);
+      window.location.reload();
+    });
+    
+    document.getElementById('exitGameBtn').addEventListener('click', () => {
+      clearInterval(timerInterval);
+      leaveGame();
+    });
+    
+    // Auto-redirect timer
+    const timerElement = document.getElementById('redirectTimer');
+    const timerInterval = setInterval(() => {
+      redirectTimer--;
+      timerElement.textContent = `Auto-redirecting in ${redirectTimer} second${redirectTimer !== 1 ? 's' : ''}...`;
+      
+      if (redirectTimer <= 0) {
+        clearInterval(timerInterval);
+        leaveGame();
+      }
+    }, 1000);
+    
     // Stop the game after a short delay to ensure UI is shown
     setTimeout(() => {
       this.stop();
     }, 100);
+    
+    // Disconnect from the game after a delay
+    setTimeout(() => {
+      if (this.ws && this.ws.connected) {
+        this.ws.send({
+          type: 'playerDisconnected',
+          playerId: this.playerId
+        });
+      }
+    }, 2000);
 
     console.log(`Game Over! Winner: ${winner.nickname}`);
   }
@@ -157,6 +225,8 @@ export class GameEngine {
       return;
     }
     this.gameOverShown = true;
+    
+    let redirectTimer = 10; // 10 seconds countdown
     
     // Create and show game over overlay for draw
     const gameOverDiv = document.createElement('div');
@@ -176,34 +246,98 @@ export class GameEngine {
     
     gameOverDiv.innerHTML = `
       <div>
-        <h1 style="font-size: 3em; margin-bottom: 20px;">🏁 Game Over! 🏁</h1>
-        <p style="font-size: 2em; margin: 20px 0; font-weight: bold;">
-          It's a draw!
+        <h1 style="font-size: 3em; margin-bottom: 20px;">Game Over - Draw!</h1>
+        <p style="font-size: 1.5em; margin-bottom: 15px; color: #eee;">
+          All players were eliminated at the same time!
         </p>
-        <p style="font-size: 1.5em; margin-bottom: 30px; color: #eee;">
-          All remaining players were eliminated simultaneously.
+        <p id="redirectTimer" style="font-size: 1.2em; margin-bottom: 30px;">
+          Auto-redirecting in 10 seconds...
         </p>
-        <button onclick="window.location.reload()" style="
-          padding: 15px 30px;
-          font-size: 1.2em;
-          background: #4CAF50;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: background 0.3s;
-        " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
-          Play Again
-        </button>
+        <div>
+          <button id="playAgainBtn" style="
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 0 10px;
+          " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
+            Play Again
+          </button>
+          <button id="exitGameBtn" style="
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 0 10px;
+          " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
+            Exit Game
+          </button>
+        </div>
       </div>
     `;
     
     document.body.appendChild(gameOverDiv);
     
+    // Function to handle leaving the game
+    const leaveGame = () => {
+      // Send leave game message to server
+      if (this.ws && this.ws.connected) {
+        this.ws.send({
+          type: 'leaveGame',
+          playerId: this.playerId
+        });
+      }
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    };
+    
+    // Add event listeners for buttons
+    document.getElementById('playAgainBtn').addEventListener('click', () => {
+      clearInterval(timerInterval);
+      window.location.reload();
+    });
+    
+    document.getElementById('exitGameBtn').addEventListener('click', () => {
+      clearInterval(timerInterval);
+      leaveGame();
+    });
+    
+    // Auto-redirect timer
+    const timerElement = document.getElementById('redirectTimer');
+    const timerInterval = setInterval(() => {
+      redirectTimer--;
+      timerElement.textContent = `Auto-redirecting in ${redirectTimer} second${redirectTimer !== 1 ? 's' : ''}...`;
+      
+      if (redirectTimer <= 0) {
+        clearInterval(timerInterval);
+        leaveGame();
+      }
+    }, 1000);
+    
     // Stop the game after a short delay to ensure UI is shown
     setTimeout(() => {
       this.stop();
     }, 100);
+    
+    // Disconnect from the game after a delay
+    setTimeout(() => {
+      if (this.ws && this.ws.connected) {
+        this.ws.send({
+          type: 'playerDisconnected',
+          playerId: this.playerId
+        });
+      }
+    }, 2000);
 
     console.log('Game Over! Draw - All players eliminated simultaneously');
   }
