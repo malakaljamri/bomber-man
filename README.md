@@ -64,9 +64,9 @@ http://localhost:3000
 - Players start in the corners of the map
 - Bombs explode after 3 seconds
 - Destroying blocks may spawn power-ups:
-  - **Bombs**: Increase max bombs you can place
-  - **Flames**: Increase explosion range
-  - **Speed**: Increase movement speed
+  - **Bombs**: Increase max bombs you can place (spongebob home)
+  - **Flames**: Increase explosion range (burger)
+  - **Speed**: Increase movement speed (sadafa - seashell)
 - When you lose all 3 lives, you're eliminated
 
 ## Project Structure

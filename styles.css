@@ -596,7 +596,7 @@ body {
 }
 
 .cell.wall {
-    background-image: url('wall.png');
+    background-image: url('a/wall.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -607,7 +607,7 @@ body {
 }
 
 .cell.block {
-    background-image: url('brick.png');
+    background-image: url('a/brick.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -792,41 +792,40 @@ body {
 
 .power-up {
     position: absolute;
-    width: 60%;
-    height: 60%;
-    top: 20%;
-    left: 20%;
-    border-radius: 5px;
+    width: 95%;
+    height: 95%;
+    top: 2.5%;
+    left: 2.5%;
+    border-radius: 8px;
     z-index: 3;
     will-change: transform;
     box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.3),
-        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+        0 3px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 2px rgba(255, 255, 255, 0.25);
     animation: power-up-glow 1.5s infinite ease-in-out;
 }
 
 .power-up.bombs {
-    background-image: url('star_empty.png');
+    background-image: url('a/homee.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    border: 2px solid #a93226;
+    
 }
 
 .power-up.flames {
-    background-image: url('star_full.png');
+    background-image: url('a/burger.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    border: 2px solid #c0392b;
+    
 }
 
 .power-up.speed {
-    background-image: url('fast_effect.png');
+    background-image: url('a/sadaf.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    border: 2px solid #2471a3;
 }
 
 @keyframes power-up-glow {
