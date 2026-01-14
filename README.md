@@ -1,4 +1,4 @@
-# Bomberman DOM
+# Bomberman Game 
 
 A **Bomberman-style multiplayer game inspired by SpongeBob SquarePants**, built with vanilla JavaScript, DOM manipulation, and WebSockets.  
 The game follows classic Bomberman mechanics while using SpongeBob-themed visuals and power-ups to create a fun underwater experience.
@@ -6,8 +6,6 @@ The game follows classic Bomberman mechanics while using SpongeBob-themed visual
 This project uses a custom mini-framework for DOM abstraction, routing, and state management.
 
 ![alt text](image.png)
-
-
 
 ## Features
 
@@ -75,6 +73,8 @@ http://localhost:3000
   - **Flames**: Increase explosion range (burger)
   - **Speed**: Increase movement speed (sadafa - seashell)
 - When you lose all 3 lives, you're eliminated
+
+![alt text](image-1.png)
 
 ## Project Structure
 
