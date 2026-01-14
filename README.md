@@ -1,6 +1,13 @@
 # Bomberman DOM
 
-A multiplayer Bomberman game built with vanilla JavaScript, DOM manipulation, and WebSockets. This project uses a custom mini-framework for DOM abstraction, routing, and state management.
+A **Bomberman-style multiplayer game inspired by SpongeBob SquarePants**, built with vanilla JavaScript, DOM manipulation, and WebSockets.  
+The game follows classic Bomberman mechanics while using SpongeBob-themed visuals and power-ups to create a fun underwater experience.
+
+This project uses a custom mini-framework for DOM abstraction, routing, and state management.
+
+![alt text](image.png)
+
+
 
 ## Features
 

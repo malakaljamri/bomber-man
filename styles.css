@@ -585,7 +585,7 @@ body {
 
 .cell {
     position: relative;
-    background-image: url('grass.png');
+    background-image: url('a/grass.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
