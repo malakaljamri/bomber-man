@@ -35,6 +35,8 @@ const router = new Router();
 
 // App state
 let cleanupGame = null;
+let countdownInterval = null; // ✅ Track countdown interval
+let isCountdownActive = false; // ✅ Track if countdown is running to prevent re-renders
 
 // Setup store reducer
 store.setReducer((state, action) => {
@@ -115,9 +117,9 @@ ws.on('game-state', (data) => {
     store.dispatch({ type: 'SET_COUNTDOWN', payload: data.countdownTime });
   }
   
-  // ✅ CRITICAL: Re-render if on waiting page
+  // ✅ Only re-render if countdown is not active
   const currentState = store.getState();
-  if (currentState.currentPage === 'waiting') {
+  if (currentState.currentPage === 'waiting' && !isCountdownActive) {
     renderApp();
   }
 });
@@ -147,9 +149,9 @@ ws.on('player-joined', (data) => {
   console.log('Player joined, updating players:', data.players);
   store.dispatch({ type: 'SET_PLAYERS', payload: data.players || [] });
   
-  // ✅ CRITICAL: Re-render immediately when player joins
+  // ✅ Only re-render if countdown is not active
   const currentState = store.getState();
-  if (currentState.currentPage === 'waiting') {
+  if (currentState.currentPage === 'waiting' && !isCountdownActive) {
     console.log('Re-rendering waiting room after player join');
     renderApp();
   }
@@ -167,9 +169,9 @@ ws.on('player-left', (data) => {
   console.log('Player left, updating players:', data.players);
   store.dispatch({ type: 'SET_PLAYERS', payload: data.players || [] });
   
-  // ✅ Re-render if on waiting page
+  // ✅ Only re-render if countdown is not active
   const currentState = store.getState();
-  if (currentState.currentPage === 'waiting') {
+  if (currentState.currentPage === 'waiting' && !isCountdownActive) {
     renderApp();
   }
 });
@@ -194,13 +196,30 @@ ws.on('chat-message', (data) => {
       cleanupGame.updateChat();
     }
     
-    // ✅ Re-render waiting room to show new chat message
+    // ✅ FIXED: Update chat messages in DOM without re-rendering during countdown
     if (state.currentPage === 'waiting') {
-      renderApp();
+      if (isCountdownActive) {
+        // During countdown, just append the new message to the chat
+        const chatMessagesContainer = document.querySelector('.chat-messages');
+        if (chatMessagesContainer) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'chat-message';
+          messageDiv.innerHTML = `
+            <span class="nickname">${data.nickname}: </span>
+            <span>${data.message}</span>
+          `;
+          chatMessagesContainer.appendChild(messageDiv);
+          chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        }
+      } else {
+        // Not during countdown, normal re-render
+        renderApp();
+      }
     }
   }
 });
 
+// ✅ FIXED: Countdown handler that doesn't re-render the entire page
 ws.on('countdown-start', (data) => {
   const state = store.getState();
   
@@ -213,18 +232,51 @@ ws.on('countdown-start', (data) => {
   console.log('Countdown started');
   store.dispatch({ type: 'SET_COUNTDOWN', payload: data.time });
   
-  // Update countdown
-  const countdownInterval = setInterval(() => {
-    const currentState = store.getState();
-    if (currentState.countdownTime !== null && currentState.countdownTime > 0) {
-      const newTime = Math.max(0, currentState.countdownTime - 100);
-      store.dispatch({ type: 'SET_COUNTDOWN', payload: newTime });
+  // ✅ Do ONE render to show the countdown element, THEN prevent further re-renders
+  if (state.currentPage === 'waiting') {
+    renderApp();
+  }
+  
+  // NOW set the flag to prevent further re-renders
+  isCountdownActive = true;
+  
+  // Clear any existing countdown interval
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+  
+  // Update countdown by directly modifying the DOM element
+  countdownInterval = setInterval(() => {
+    console.log('Countdown interval running...'); // DEBUG
+    
+    // ✅ FIX: Access the state directly, not through getState() which returns a copy
+    if (store.state.countdownTime !== null && store.state.countdownTime > 0) {
+      const newTime = Math.max(0, store.state.countdownTime - 100);
       
-      if (newTime === 0) {
+      console.log('Current countdown time:', store.state.countdownTime); // DEBUG
+      
+      // ✅ FIX: Update the countdown display directly without re-rendering
+      const countdownElement = document.querySelector('.countdown');
+      console.log('Countdown element found:', countdownElement); // DEBUG
+      
+      if (countdownElement) {
+        const seconds = Math.ceil(newTime / 1000);
+        console.log('Updating to:', seconds); // DEBUG
+        countdownElement.textContent = `Game starting in ${seconds}s`;
+      }
+      
+      // ✅ FIX: Update the ACTUAL state directly (not a copy)
+      store.state.countdownTime = newTime;
+      
+      if (newTime <= 0) {
         clearInterval(countdownInterval);
+        countdownInterval = null;
+        isCountdownActive = false; // ✅ Clear flag when countdown ends
       }
     } else {
       clearInterval(countdownInterval);
+      countdownInterval = null;
+      isCountdownActive = false; // ✅ Clear flag
     }
   }, 100);
 });
@@ -237,6 +289,13 @@ ws.on('game-start', (data) => {
     console.log('Ignoring game-start meant for different tab');
     return;
   }
+  
+  // ✅ Clear the countdown interval and flag when game starts
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  isCountdownActive = false; // ✅ Clear flag
   
   console.log('Game starting');
   store.dispatch({ type: 'SET_GAME_STATE', payload: data.gameState });
@@ -427,11 +486,11 @@ router.addRoute('/game', () => {
   }
 });
 
-// Subscribe to store changes
+// ✅ FIXED: Subscribe to store changes but skip re-renders during countdown
 store.subscribe(() => {
   const state = store.getState();
-  // Only render if we're not in game phase, but always update waiting room for chat
-  if (state.currentPage !== 'game') {
+  // Only render if we're not in game phase AND countdown is not active
+  if (state.currentPage !== 'game' && !isCountdownActive) {
     renderApp();
   }
 });
