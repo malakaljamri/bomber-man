@@ -62,8 +62,8 @@ http://localhost:3000
    - **Movement**: Use WASD or Arrow Keys
    - **Place Bomb**: Press Spacebar
    - **Objective**: Be the last player standing!
-  
-<img width="2848" height="1599" alt="image" src="https://github.com/user-attachments/assets/9d9526f8-00a4-4cc2-894c-ce4689160686" />
+   - 
+  ![alt text](image-1.png)
 
 
 ## Game Rules
@@ -77,7 +77,7 @@ http://localhost:3000
   - **Speed**: Increase movement speed (sadafa - seashell)
 - When you lose all 3 lives, you're eliminated
 
-![alt text](image-1.png)
+<img width="2848" height="1599" alt="image" src="https://github.com/user-attachments/assets/9d9526f8-00a4-4cc2-894c-ce4689160686" />
 
 ## Project Structure
 
