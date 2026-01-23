@@ -62,6 +62,9 @@ http://localhost:3000
    - **Movement**: Use WASD or Arrow Keys
    - **Place Bomb**: Press Spacebar
    - **Objective**: Be the last player standing!
+  
+<img width="2848" height="1599" alt="image" src="https://github.com/user-attachments/assets/9d9526f8-00a4-4cc2-894c-ce4689160686" />
+
 
 ## Game Rules
 
