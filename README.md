@@ -24,7 +24,7 @@ This project uses a custom mini-framework for DOM abstraction, routing, and stat
 
 ## Requirements
 
-- Node.js (v14 or higher)
+- Node.js 
 - npm or yarn
 
 ## Installation
